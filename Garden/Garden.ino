@@ -2,10 +2,13 @@
 #include <SPI.h>
 #include <SD.h>
 
-const int SD_ChipSelect = 10; 
+
+// Pin Definitions
+const int Valve1 = 2;
 const int ThermoDataOutput = 4;
 const int ThermoChipSelect = 5;
 const int ThermoClock = 6;
+const int SD_ChipSelect = 10; 
 const char* FileName = "Log.csv";
 
 MAX6675 thermocouple(ThermoClock, ThermoChipSelect, ThermoDataOutput);
@@ -26,7 +29,10 @@ int tempIndex = 0;
 
 void setup() 
 {
+
+  pinMode(Valve1, OUTPUT); // Set the valve pin as an output
   pinMode(SD_ChipSelect, OUTPUT);
+
 
   SPI.begin();
   Serial.begin(9600); 
@@ -61,6 +67,13 @@ void loop()
     writeTempReadingsToFile();
     tempIndex = 0;
   }
+
+  digitalWrite(Valve1, HIGH); // Open the valve
+  Serial.println("Valve Opened");
+  delay(100000); // Wait for 1 second
+  digitalWrite(Valve1, LOW); // Close the valve
+  Serial.println("Valve Closed");
+
   
   delay(1000); 
 }
