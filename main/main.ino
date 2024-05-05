@@ -20,13 +20,21 @@ sSoilSensorData soilSensorData;
 void setup()
 {
   Serial.begin(baud);
-    logger.setupLogger();
+  //logger.setupLogger();
+  if( logger.setupRTC() )
+  {
+    Serial.println("RTC setup successful.");
+  }
+  else
+  {
+    Serial.println("RTC setup failed.");
+  }
 }
 
 void loop()
 {
   soilSensor.runSoilSensor(&soilSensorData);
-  soilSensorData.timeStamp = gTimeString;
+  //soilSensorData.timeStamp = gTimeString;
   wifiInterface.runWIFI(&soilSensorData);
   logger.RunLogger(&soilSensorData);
 }

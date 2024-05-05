@@ -1,6 +1,9 @@
 #include "IO.h"
 #include "SoilSensor.h"
 
+const int soilSensorArraySize = 10;
+sSoilSensorData soilSensorDataArray[soilSensorArraySize];
+
 void cSoilSensor::runSoilSensor(sSoilSensorData* soilSensorData)
 {
   static int state = 0;
@@ -14,7 +17,17 @@ void cSoilSensor::runSoilSensor(sSoilSensorData* soilSensorData)
     }
     case 1:
     {
-      checkSoilSensor(soilSensorData);
+      sSoilSensorData newSoilSensorData;
+      if( checkSoilSensor(&newSoilSensorData) )
+      {
+        *soilSensorData = fillSoilSensorDataArray(soilSensorDataArray, newSoilSensorData);
+        Serial.print(soilSensorData->soilMoisture);
+        Serial.print(",");
+        Serial.print(soilSensorData->soilTemperature);
+        Serial.print(",");
+        Serial.println(soilSensorData->soilPh);
+      }
+
       break;
     }
   }
@@ -27,11 +40,62 @@ void cSoilSensor::setupSoilSensor()
   digitalWrite(rs485TxEnable, LOW);  
 }
 
-void cSoilSensor::checkSoilSensor(sSoilSensorData* soilSensorData)
+sSoilSensorData cSoilSensor::fillSoilSensorDataArray(sSoilSensorData* soilSensorDataArray, sSoilSensorData newSoilSensorData) 
+{
+  static int currentIndex = 0;
+  static bool bufferFull = false;
+
+  // Add the new object to the array at the current index
+  soilSensorDataArray[currentIndex] = newSoilSensorData;
+
+  // Increment the current index, and roll over if it reaches the end of the array
+  if(currentIndex == 9) bufferFull = true;
+  currentIndex = (currentIndex + 1) % soilSensorArraySize;
+
+  // Calculate the average of the data collected
+  double outsideAirTempSum = 0;
+  double outsideAirHumiditySum = 0;
+  double soilTemperatureSum = 0;
+  double soilElectricalConductivitySum = 0;
+  double soilMoistureSum = 0;
+  double soilPhSum = 0;
+  int bufferLength = bufferFull ? soilSensorArraySize : currentIndex;
+  for (int i = 0; i < bufferLength; i++) 
+  {
+    outsideAirTempSum += soilSensorDataArray[i].outsideAirTemp;
+    outsideAirHumiditySum += soilSensorDataArray[i].outsideAirHumidity;
+    soilTemperatureSum += soilSensorDataArray[i].soilTemperature;
+    soilElectricalConductivitySum += soilSensorDataArray[i].soilElectricalConductivity;
+    soilMoistureSum += soilSensorDataArray[i].soilMoisture;
+    soilPhSum += soilSensorDataArray[i].soilPh;
+  }
+  double outsideAirTempAvg = outsideAirTempSum / bufferLength;
+  double outsideAirHumidityAvg = outsideAirHumiditySum / bufferLength;
+  double soilTemperatureAvg = soilTemperatureSum / bufferLength;
+  double soilElectricalConductivityAvg = soilElectricalConductivitySum / bufferLength;
+  double soilMoistureAvg = soilMoistureSum / bufferLength;
+  double soilPhAvg = soilPhSum / bufferLength;
+
+  // Create a new object to hold the average data
+  sSoilSensorData avgSoilSensorData;
+  avgSoilSensorData.dateStamp = newSoilSensorData.dateStamp;
+  avgSoilSensorData.timeStamp = newSoilSensorData.timeStamp;
+  avgSoilSensorData.outsideAirTemp = outsideAirTempAvg;
+  avgSoilSensorData.outsideAirHumidity = outsideAirHumidityAvg;
+  avgSoilSensorData.soilTemperature = soilTemperatureAvg;
+  avgSoilSensorData.soilElectricalConductivity = soilElectricalConductivityAvg;
+  avgSoilSensorData.soilMoisture = soilMoistureAvg;
+  avgSoilSensorData.soilPh = soilPhAvg;
+
+  return avgSoilSensorData;
+}
+
+bool cSoilSensor::checkSoilSensor(sSoilSensorData* soilSensorData)
 {
   static int processStep = 0;
   static unsigned long startTime = millis();  
   int temp;
+  bool processedNewData = false;
   switch(processStep)
   {
     case 0:
@@ -73,27 +137,13 @@ void cSoilSensor::checkSoilSensor(sSoilSensorData* soilSensorData)
         float ecValue = ((data[4+offset] << 8) + data[5+offset]);
         float phValue = ((data[6+offset] << 8) + data[7+offset]) /10.00;
         float tempF = tempC * 9.0/5.0 + 32.0;
+      
         soilSensorData->soilMoisture = humidity;
         soilSensorData->soilTemperature = tempF;
         soilSensorData->soilElectricalConductivity = ecValue;
         soilSensorData->soilPh = phValue;
+        processedNewData = true;
 
-// struct sSoilSensorData
-// {
-//   unsigned int timeStamp;
-//   double outsideAirTemp;
-//   double soilMoisture;x
-//   double soilTemperature;x
-//   double soilElectricalConductivity;x
-//   double soilHumidity;
-//   double soilPh;
-// };
-
-        Serial.print(humidity);
-        Serial.print(",");
-        Serial.print(tempF);
-        Serial.print(",");
-        Serial.println(ecValue);
 
         startTime = millis();
         processStep++;
@@ -119,4 +169,5 @@ void cSoilSensor::checkSoilSensor(sSoilSensorData* soilSensorData)
       break;
     }
   }
+  return processedNewData;
 }

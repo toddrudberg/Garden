@@ -15,6 +15,7 @@ extern const unsigned long baud;
 
 struct sSoilSensorData
 {
+    char* dateStamp;
   char* timeStamp;
   double outsideAirTemp;
   double outsideAirHumidity;
