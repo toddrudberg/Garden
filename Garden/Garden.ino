@@ -4,7 +4,7 @@
 
 
 // Pin Definitions
-const int Valve1 = 2;
+//const int Valve1 = 2;
 const int ThermoDataOutput = 4;
 const int ThermoChipSelect = 5;
 const int ThermoClock = 6;
@@ -30,14 +30,14 @@ int tempIndex = 0;
 void setup() 
 {
 
-  pinMode(Valve1, OUTPUT); // Set the valve pin as an output
+  //pinMode(Valve1, OUTPUT); // Set the valve pin as an output
   pinMode(SD_ChipSelect, OUTPUT);
 
 
   SPI.begin();
   Serial.begin(9600); 
 
-  if (!SD.begin(SD_ChipSelect)) 
+  if (!SD.begin(10)) 
   {
     Serial.println("SD card initialization failed!");
     return;
@@ -68,11 +68,11 @@ void loop()
     tempIndex = 0;
   }
 
-  digitalWrite(Valve1, HIGH); // Open the valve
-  Serial.println("Valve Opened");
-  delay(100000); // Wait for 1 second
-  digitalWrite(Valve1, LOW); // Close the valve
-  Serial.println("Valve Closed");
+  //digitalWrite(Valve1, HIGH); // Open the valve
+  //Serial.println("Valve Opened");
+  //delay(1000); // Wait for 1 second
+  //digitalWrite(Valve1, LOW); // Close the valve
+  //Serial.println("Valve Closed");
 
   
   delay(1000); 

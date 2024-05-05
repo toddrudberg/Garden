@@ -2,40 +2,71 @@
 
 cWIFIInterface::cWIFIInterface() : timeClient(ntpUDP, "pool.ntp.org", -25200), server(80) 
 {
-  // const char* ssid = "CenturyLink2286";
-  // const char* password = "vvgs3nsmrw2549";
-  //strncpy(ssid, "CenturyLink2286", sizeof(ssid));
-  //strncpy(pass, "vvgs3nsmrw2549", sizeof(pass));
 }
 
-void cWIFIInterface::setupWIFI()
+void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData)
 {
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  
-  WiFi.begin(ssid, password);
-  
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(5000);  // Retry every 5 seconds
+    static int state = 0;
+    switch(state)
+    {
+        case 0:
+        {
+            static int timeOut = millis();
+            static bool connectionFailed = false;
+            if( !connectionFailed && setupWIFI())
+            {
+                // If successfully connected to WiFi, print IP address
+                Serial.println("Connected to WiFi");
+                Serial.print("IP Address: ");
+                Serial.println(WiFi.localIP());
 
-  }
-
-  // If successfully connected to WiFi, print IP address
-  Serial.println("Connected to WiFi");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
-
-  // Start the web server
-  server.begin();
-  Serial.println("Web server started");    
+                // Start the web server
+                server.begin();
+                Serial.println("Web server started");  
+                state++;
+            }
+            else
+            {
+                connectionFailed = true;
+                if(millis() - timeOut > 5000)
+                {
+                    Serial.println("WIFI setup failed, retrying...");
+                    timeOut = millis();
+                    connectionFailed = false;
+                }
+            }
+            break;
+        }
+        case 1:
+        {
+            static int timeOut = millis();
+            if( millis() - timeOut > 250)
+            {
+                timeOut = millis();
+                checkWIFI(soilSensorData);
+            }
+            break;
+        }
+    }
+   
 }
 
-void cWIFIInterface::checkWIFI()
+bool cWIFIInterface::setupWIFI()
+{
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
+    
+    WiFi.begin(ssid, password);
+    return WiFi.status() == WL_CONNECTED;  
+}
+
+void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
 {
     static unsigned long lastTime = 0;
     static unsigned long startTime = millis();
     static unsigned long lastNtpTime = 0;
+
+    static String timeString = {"12:00:00"};
 
     // syncronizing time with NTP server, this will need to move to rtc later. 
     if (millis() - lastTime > 1000) 
@@ -43,21 +74,25 @@ void cWIFIInterface::checkWIFI()
         lastTime = millis();
         if (timeClient.update())
         {
-        startTime = millis() - timeClient.getSeconds() * 1000;
-        lastNtpTime = timeClient.getHours() * 3600 + timeClient.getMinutes() * 60 + timeClient.getSeconds();
-        Serial.println(timeClient.getFormattedTime());
-        
-        } else 
+            startTime = millis() - timeClient.getSeconds() * 1000;
+            lastNtpTime = timeClient.getHours() * 3600 + timeClient.getMinutes() * 60 + timeClient.getSeconds();
+            //Serial.println(timeClient.getFormattedTime());
+            timeString = String(timeClient.getFormattedTime());
+            //timeClient.getFormattedTime();
+        } 
+        else 
         {
-        unsigned long elapsedSeconds = (millis() - startTime) / 1000;
-        unsigned long currentTime = lastNtpTime + elapsedSeconds;
-        unsigned int seconds = currentTime % 60;
-        unsigned int minutes = (currentTime / 60) % 60;
-        unsigned int hours = (currentTime / 3600) % 24;
-        char timeString[9];
-        sprintf(timeString, "%02u:%02u:%02u", hours, minutes, seconds);
-        Serial.println(timeString);
+            unsigned long elapsedSeconds = (millis() - startTime) / 1000;
+            unsigned long currentTime = lastNtpTime + elapsedSeconds;
+            unsigned int seconds = currentTime % 60;
+            unsigned int minutes = (currentTime / 60) % 60;
+            unsigned int hours = (currentTime / 3600) % 24;
+            char time_string[9];
+            sprintf(time_string, "%02u:%02u:%02u", hours, minutes, seconds);
+            timeString = String(time_string);
+            //Serial.println(timeString);
         }
+        strncpy(gTimeString, timeString.c_str(), timeString.length() + 1);
     }
 
     WiFiClient client = server.available();  // Check for incoming client requests
@@ -95,6 +130,7 @@ void cWIFIInterface::checkWIFI()
 
         if (authenticated) 
         {
+            Serial.println("Client authenticated at " + timeString);
             // Respond to the client
             client.println("HTTP/1.1 200 OK");
             client.println("Content-Type: text/html");
@@ -103,6 +139,11 @@ void cWIFIInterface::checkWIFI()
             client.println("<h1>Hello, World!</h1>");
             client.println("<p id='clientTime'></p>");  // Paragraph where the client's time will be displayed
             client.println("<p id='serverTime'></p>");  // Paragraph where the server's time will be displayed
+            client.println("<h1>Soil Sensor Data</h1>");
+            client.println("<p>Soil Moisture: " + String(soilSensorData->soilMoisture) + "</p>");
+            client.println("<p>Soil Temperature: " + String(soilSensorData->soilTemperature) + "</p>");
+            client.println("<p>Soil Electrical Conductivity: " + String(soilSensorData->soilElectricalConductivity) + "</p>");
+            client.println("<p>Soil pH: " + String(soilSensorData->soilPh) + "</p>");
             client.println("<script>");
             client.println("function updateTime() {");
             client.println("  var d = new Date();");  // Create a new Date object
@@ -131,8 +172,5 @@ void cWIFIInterface::checkWIFI()
 
         client.stop();  // Close the connection
         Serial.println("Client disconnected");
-    }
-    
-    // Delay before next reading
-    delay(250);    
+    }  
 }

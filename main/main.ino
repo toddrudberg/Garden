@@ -1,6 +1,7 @@
 #include "IO.h"
 #include "SoilSensor.h"
 #include "WIFIInterface.h"
+#include "ADAFruitLogger.h"
 //todo:
 // 1. setup wifi
 // 2. setup realtime clock
@@ -14,21 +15,18 @@
 
 cSoilSensor soilSensor;
 cWIFIInterface wifiInterface;
-
+cAdafruitLogger logger;
+sSoilSensorData soilSensorData;
 void setup()
 {
   Serial.begin(baud);
-  Serial.println("Setting up soil sensor...");
-  soilSensor.setupSoilSensor();
-  Serial.println("Setting up WIFI...");
-  wifiInterface.setupWIFI();
-
-  Serial.println("Setup complete, beginning big loop...");
+    logger.setupLogger();
 }
-
 
 void loop()
 {
-  soilSensor.checkSoilSensor();
-  wifiInterface.checkWIFI();
+  soilSensor.runSoilSensor(&soilSensorData);
+  soilSensorData.timeStamp = gTimeString;
+  wifiInterface.runWIFI(&soilSensorData);
+  logger.RunLogger(&soilSensorData);
 }

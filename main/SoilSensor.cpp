@@ -1,6 +1,25 @@
 #include "IO.h"
 #include "SoilSensor.h"
 
+void cSoilSensor::runSoilSensor(sSoilSensorData* soilSensorData)
+{
+  static int state = 0;
+  switch(state)
+  {
+    case 0:
+    {
+      setupSoilSensor();
+      state++;
+      break;
+    }
+    case 1:
+    {
+      checkSoilSensor(soilSensorData);
+      break;
+    }
+  }
+}
+
 void cSoilSensor::setupSoilSensor()
 {
   mySerial.begin(baud);
@@ -8,7 +27,7 @@ void cSoilSensor::setupSoilSensor()
   digitalWrite(rs485TxEnable, LOW);  
 }
 
-void cSoilSensor::checkSoilSensor()
+void cSoilSensor::checkSoilSensor(sSoilSensorData* soilSensorData)
 {
   static int processStep = 0;
   static unsigned long startTime = millis();  
@@ -54,6 +73,21 @@ void cSoilSensor::checkSoilSensor()
         float ecValue = ((data[4+offset] << 8) + data[5+offset]);
         float phValue = ((data[6+offset] << 8) + data[7+offset]) /10.00;
         float tempF = tempC * 9.0/5.0 + 32.0;
+        soilSensorData->soilMoisture = humidity;
+        soilSensorData->soilTemperature = tempF;
+        soilSensorData->soilElectricalConductivity = ecValue;
+        soilSensorData->soilPh = phValue;
+
+// struct sSoilSensorData
+// {
+//   unsigned int timeStamp;
+//   double outsideAirTemp;
+//   double soilMoisture;x
+//   double soilTemperature;x
+//   double soilElectricalConductivity;x
+//   double soilHumidity;
+//   double soilPh;
+// };
 
         Serial.print(humidity);
         Serial.print(",");

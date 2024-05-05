@@ -1,12 +1,14 @@
 // cSoilSensor.h
 #ifndef SOILSENSOR_H
 #define SOILSENSOR_H
+#include "IO.h"
 
 class cSoilSensor
 {
 public:
   void setupSoilSensor();
-  void checkSoilSensor();
+  void checkSoilSensor(sSoilSensorData* soilSensorData);
+  void runSoilSensor(sSoilSensorData* soilSensorData);
 
 private:
     private:

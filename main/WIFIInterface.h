@@ -1,15 +1,16 @@
 #ifndef WIFIINTERFACE_H
 #define WIFIINTERFACE_H
+#include "IO.h"
 #include <WiFi.h>
 #include <NTPClient.h>
 
 class cWIFIInterface
 {
 public:
-  cWIFIInterface();
-  void setupWIFI();
-  void checkWIFI();
-
+    cWIFIInterface();
+    bool setupWIFI();
+    void checkWIFI(sSoilSensorData* soilSensorData);
+    void runWIFI(sSoilSensorData* soilSensorData);
 
 private:
     WiFiUDP ntpUDP;
