@@ -15,7 +15,7 @@
 
 cSoilSensor soilSensor;
 cWIFIInterface wifiInterface;
-cAdafruitLogger logger;
+
 sSoilSensorData soilSensorData;
 void setup()
 {
@@ -29,12 +29,37 @@ void setup()
   {
     Serial.println("RTC setup failed.");
   }
+
+  pinMode(Valve1, OUTPUT);
+  pinMode(Valve2, OUTPUT);
+  pinMode(Valve3, OUTPUT);
 }
 
 void loop()
 {
+
   soilSensor.runSoilSensor(&soilSensorData);
   //soilSensorData.timeStamp = gTimeString;
   wifiInterface.runWIFI(&soilSensorData);
   logger.RunLogger(&soilSensorData);
+
+
+  if( gWatering )
+  {
+    digitalWrite(Valve1, HIGH);
+    digitalWrite(Valve2, HIGH);
+    digitalWrite(Valve3, HIGH);
+    if( logger.getUnixTime() - gWateringTimeStart > gWateringDuration)
+    {
+      gWatering = false;
+    }
+  }
+  else
+  {
+    digitalWrite(Valve1, LOW);
+    digitalWrite(Valve2, LOW);
+    digitalWrite(Valve3, LOW);
+    gWateringTimeStart = logger.getUnixTime() - gWateringDuration;
+  }
+
 }

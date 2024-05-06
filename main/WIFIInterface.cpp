@@ -60,12 +60,11 @@ bool cWIFIInterface::setupWIFI()
     return WiFi.status() == WL_CONNECTED;  
 }
 
-void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
+void cWIFIInterface::CheckNtpTime()
 {
     static unsigned long lastTime = 0;
     static unsigned long startTime = millis();
     static unsigned long lastNtpTime = 0;
-
     static String timeString = {"12:00:00"};
 
     // syncronizing time with NTP server, this will need to move to rtc later. 
@@ -94,83 +93,126 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
         }
         strncpy(gTimeString, timeString.c_str(), timeString.length() + 1);
     }
+}
+
+bool getTag(String currentLine, String& tag) {
+    //Serial.println(currentLine);
+    if (currentLine.indexOf("StartWater") != -1) {
+        tag = "StartWater";
+    } else if (currentLine.indexOf("StopWater") != -1) {
+        tag = "StopWater";
+    } else if (currentLine.indexOf("Refresh") != -1) {
+        tag = "Refresh";
+    } else {
+        return false;
+    }
+    return true;
+}
+
+void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
+{
+    static bool startWaterReceived = false;
+    static bool startWaterReceivedLast = false;
+    String tag = "";
+    bool capturedTag = false;
 
     WiFiClient client = server.available();  // Check for incoming client requests
     if (client) {  // If a client has connected
-        Serial.println("New client connected");
+        //Serial.println("New client connected");
         String currentLine = "";
 
         bool authenticated = true;
-        if(false)
-        {
-            while (client.connected()) 
+
+        while (client.connected() && client.available()) {  // While the client is connected and there's data to read
+            char c = client.read();  // Read a byte
+            if (c == '\n') 
             {
-                if (client.available()) 
+                // If the byte is a newline character
+                // If the current line is blank, you got two newline characters in a row.
+                // That's the end of the client's HTTP request:
+                if (currentLine.length() == 0) 
                 {
-                char c = client.read();
-                    if (c == '\n') 
+                    break;
+                } 
+                else 
+                {  // If you got a newline, then clear currentLine
+                    if( getTag(currentLine, tag) )
                     {
-                        if (currentLine.startsWith("Authorization: Basic")) {
-                        String auth = currentLine.substring(21);
-                        // auth now contains the Base64-encoded username:password
-                        // Check if auth matches your expected username:password
-                        //http://admin:1234@192.168.0.91
-                        if (auth == "YWRtaW46MTIzNA==") {
-                            authenticated = true;
-                        }
-                        authenticated = true;
-                        }
-                        currentLine = "";
-                    } else if (c != '\r') {
-                        currentLine += c;
+                        capturedTag = true;
+                        break;
                     }
+                    currentLine = "";
                 }
+            } else if (c != '\r') {  // If you got anything else but a carriage return character,
+                currentLine += c;  // add it to the end of the currentLine
             }
         }
 
         if (authenticated) 
         {
-            Serial.println("Client authenticated at " + timeString);
-            // Respond to the client
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-Type: text/html");
-            client.println();
-            client.println("<html><head><title>Hello, Arduino!</title></head><body>");
-            client.println("<h1>Hello, World!</h1>");
-            client.println("<p id='clientTime'></p>");  // Paragraph where the client's time will be displayed
-            client.println("<p id='serverTime'></p>");  // Paragraph where the server's time will be displayed
-            client.println("<h1>Soil Sensor Data</h1>");
-            client.println("<p>Soil Moisture: " + String(soilSensorData->soilMoisture) + "</p>");
-            client.println("<p>Soil Temperature: " + String(soilSensorData->soilTemperature) + "</p>");
-            client.println("<p>Soil Electrical Conductivity: " + String(soilSensorData->soilElectricalConductivity) + "</p>");
-            client.println("<p>Soil pH: " + String(soilSensorData->soilPh) + "</p>");
-            client.println("<script>");
-            client.println("function updateTime() {");
-            client.println("  var d = new Date();");  // Create a new Date object
-            client.println("  var hours = d.getHours() < 10 ? '0' + d.getHours().toString() : d.getHours().toString();");
-            client.println("  var minutes = d.getMinutes() < 10 ? '0' + d.getMinutes().toString() : d.getMinutes().toString();");
-            client.println("  var seconds = d.getSeconds() < 10 ? '0' + d.getSeconds().toString() : d.getSeconds().toString();");
-            client.println("  var timeString = hours + ':' + minutes + ':' + seconds;");  // Format the time    
-            client.println("  document.getElementById('clientTime').textContent = 'Client Time: ' + timeString;");  // Update the client's time
-            client.println("  document.getElementById('serverTime').textContent = 'Server Time: " + String(timeClient.getFormattedTime()) + "';");  // Update the server's time
-            client.println("}");
-            client.println("setInterval(updateTime, 1000);");  // Update the time every second
-            client.println("updateTime();");  // Update the time immediately
-            client.println("</script>");
-            client.println("</body></html>");
+            Serial.println(tag);
+            if (tag == "StartWater") 
+            {
+                startWaterReceived = true;
+                //Serial.println("StartWater tag received.");
             }
-        else 
-        {
-            // The client is not authenticated
-            // Send a 401 Unauthorized response
-            client.println("HTTP/1.1 401 Unauthorized");
-            client.println("WWW-Authenticate: Basic realm=\"Secure Area\"");
-            client.println("Content-Type: text/html");
-            client.println();
-            client.println("<html><body><h1>401 Unauthorized</h1></body></html>");
+            else if (tag == "StopWater") 
+            {
+                startWaterReceived = false;
+                //Serial.println("StopWater tag received.");
+            }
+            else if (tag == "Refresh") 
+            {
+                //Serial.println("Refresh tag received.");
+                sTotalState totalState;
+                totalState.soilSensorData = *soilSensorData;
+                totalState.wateringTimeStart = gWateringTimeStart;
+                totalState.wateringDuration = gWateringDuration;
+                totalState.watering = gWatering;
+
+
+                // Create a JSON document
+                DynamicJsonDocument doc(1024);
+                doc["Date"] = logger.getExcelFormattedDate();
+                doc["Time"] = logger.getExcelFormattedTime();
+                doc["OAT"].set(round(totalState.soilSensorData.outsideAirTemp * 10.0) / 10.0);
+                doc["OAH"].set(round(totalState.soilSensorData.outsideAirHumidity * 10.0) / 10.0);
+                doc["SM"].set(round(totalState.soilSensorData.soilMoisture * 10.0) / 10.0);
+                doc["ST"].set(round(totalState.soilSensorData.soilTemperature * 10.0) / 10.0);
+                doc["SEC"].set(round(totalState.soilSensorData.soilElectricalConductivity * 10.0) / 10.0);
+                doc["SPH"].set(round(totalState.soilSensorData.soilPh * 10.0) / 10.0);
+                doc["WATERING"] = totalState.watering;
+                int wateringTimeRemaining = totalState.wateringDuration - (logger.getUnixTime() - totalState.wateringTimeStart);
+                if (wateringTimeRemaining < 0 || wateringTimeRemaining > 100000) {
+                    wateringTimeRemaining = 0;
+                }
+                doc["WATERINGTIMEREMAINING"] = wateringTimeRemaining;                // Serialize JSON document to String
+                String jsonString;
+                serializeJson(doc, jsonString);
+
+                // Respond to the client
+                client.println("HTTP/1.1 200 OK");
+                client.println("Content-Type: application/json");
+                client.println();
+                client.println(jsonString);
+            }
         }
 
         client.stop();  // Close the connection
-        Serial.println("Client disconnected");
+        //Serial.println("Client disconnected");
+
+        if(startWaterReceived && !startWaterReceivedLast && !gWatering)
+        {
+            Serial.println("StartWater tag received, starting watering.");
+            gWatering = true;
+            gWateringDuration = 60 * 10; // 10 minutes
+            gWateringTimeStart = logger.getUnixTime();
+        }
+        else if(!startWaterReceived && startWaterReceivedLast)
+        {
+            Serial.println("StopWater tag received, stopping watering.");
+            gWatering = false;
+        }
+        startWaterReceivedLast = startWaterReceived;
     }  
 }

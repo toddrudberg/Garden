@@ -21,11 +21,11 @@ void cSoilSensor::runSoilSensor(sSoilSensorData* soilSensorData)
       if( checkSoilSensor(&newSoilSensorData) )
       {
         *soilSensorData = fillSoilSensorDataArray(soilSensorDataArray, newSoilSensorData);
-        Serial.print(soilSensorData->soilMoisture);
-        Serial.print(",");
-        Serial.print(soilSensorData->soilTemperature);
-        Serial.print(",");
-        Serial.println(soilSensorData->soilPh);
+        // Serial.print(soilSensorData->soilMoisture);
+        // Serial.print(",");
+        // Serial.print(soilSensorData->soilTemperature);
+        // Serial.print(",");
+        // Serial.println(soilSensorData->soilPh);
       }
 
       break;
@@ -80,12 +80,12 @@ sSoilSensorData cSoilSensor::fillSoilSensorDataArray(sSoilSensorData* soilSensor
   sSoilSensorData avgSoilSensorData;
   avgSoilSensorData.dateStamp = newSoilSensorData.dateStamp;
   avgSoilSensorData.timeStamp = newSoilSensorData.timeStamp;
-  avgSoilSensorData.outsideAirTemp = outsideAirTempAvg;
-  avgSoilSensorData.outsideAirHumidity = outsideAirHumidityAvg;
-  avgSoilSensorData.soilTemperature = soilTemperatureAvg;
-  avgSoilSensorData.soilElectricalConductivity = soilElectricalConductivityAvg;
-  avgSoilSensorData.soilMoisture = soilMoistureAvg;
-  avgSoilSensorData.soilPh = soilPhAvg;
+  avgSoilSensorData.outsideAirTemp = static_cast<float>(outsideAirTempAvg);
+  avgSoilSensorData.outsideAirHumidity = static_cast<float>(outsideAirHumidityAvg);
+  avgSoilSensorData.soilTemperature = static_cast<float>(soilTemperatureAvg);
+  avgSoilSensorData.soilElectricalConductivity = static_cast<float>(soilElectricalConductivityAvg);
+  avgSoilSensorData.soilMoisture = static_cast<float>(soilMoistureAvg);
+  avgSoilSensorData.soilPh = static_cast<float>(soilPhAvg);
 
   return avgSoilSensorData;
 }

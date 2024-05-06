@@ -11,6 +11,7 @@ public:
     bool setupWIFI();
     void checkWIFI(sSoilSensorData* soilSensorData);
     void runWIFI(sSoilSensorData* soilSensorData);
+    void CheckNtpTime();
 
 private:
     WiFiUDP ntpUDP;

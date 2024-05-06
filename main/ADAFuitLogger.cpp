@@ -1,4 +1,5 @@
-#include "ADAFruitLogger.h"
+//#include "ADAFruitLogger.h"
+#include "IO.h"
 
 RTC_PCF8523 rtc;
 
@@ -26,6 +27,11 @@ bool cAdafruitLogger::setupRTC()
     return true;
 }
 
+uint32_t cAdafruitLogger::getUnixTime() {
+  DateTime now = rtc.now();
+  return now.unixtime();
+}
+
 char* cAdafruitLogger::getExcelFormattedDate() {
   static char dateString[11]; // Buffer to hold the date string
   DateTime now = rtc.now();
@@ -45,8 +51,6 @@ char* cAdafruitLogger::getExcelFormattedTime() {
 
   return timeString;
 }
-
-
 
 void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData)
 {

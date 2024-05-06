@@ -1,6 +1,6 @@
-// cADAFRuitLogger.h
+
 #ifndef ADAFUITLOGGER_H
-#define SOIADAFUITLOGGER_HLSENSOR_H
+#define ADAFUITLOGGER_H
 #include "IO.h"
 #include <max6675.h>
 #include <SPI.h>
@@ -22,6 +22,7 @@ public:
     bool setupRTC();
     char* getExcelFormattedDate();
     char* getExcelFormattedTime();
+    uint32_t getUnixTime();
 private:
 
 };
