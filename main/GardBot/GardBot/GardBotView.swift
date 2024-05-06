@@ -105,6 +105,11 @@ struct GardBotView: View
             // Reload the WebView every time the timer fires
             sendTag(tag: "Refresh")
         }
+        .background(
+            Image("Background")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .edgesIgnoringSafeArea(.all))
     }
 
     func sendTag(tag: String) 
