@@ -49,7 +49,7 @@ struct GardBotView: View
                     Text("Activate Cycle")
                         .font(.system(size: CGFloat(fontSize1)))
                 }
-                .padding(.horizontal, 60.0)
+                .padding([.top, .leading, .trailing], 60.0)
                 .onChange(of: isWaterCycleActive) 
                 { newValue in
                     isToggleDisabled = true
@@ -99,7 +99,9 @@ struct GardBotView: View
                     HStack {
                         Text("Time Remaining: ")
                             .font(.system(size: CGFloat(fontSize1)))
-                        Text(String(format: "%.1f", response.wateringTimeRemaining))
+                        Text(String(format: "%d:%02d", 
+                                    Int(response.wateringTimeRemaining), 
+                                    Int((response.wateringTimeRemaining * 60).truncatingRemainder(dividingBy: 60))))
                             .font(.system(size: CGFloat(fontSize1)))
                     }
                     //display Server Date
