@@ -5,14 +5,14 @@ struct ServerResponse: Codable
 {
     let date: String
     let time: String
-    let oat: Double
-    let oah: Double
-    let sm: Double
-    let st: Double
-    let sec: Double
-    let sph: Double
+    let oat: Float
+    let oah: Float
+    let sm: Float
+    let st: Float
+    let sec: Float
+    let sph: Float
     let watering: Bool
-    let wateringTimeRemaining: Int
+    let wateringTimeRemaining: Float
 
     enum CodingKeys: String, CodingKey 
     {
@@ -35,6 +35,7 @@ struct GardBotView: View
     @State var isWaterCycleActive = false
     @State private var isToggleDisabled = false
     @State private var isToggleDisabledlast = false
+    @State private var fontSize1 = 30
 
     let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
@@ -43,11 +44,14 @@ struct GardBotView: View
         GeometryReader { geometry in
             VStack 
             {
-                Toggle(isOn: $isWaterCycleActive) {
-                    Text("Activate Water Cycle")
+                Toggle(isOn: $isWaterCycleActive) 
+                {
+                    Text("Activate Cycle")
+                        .font(.system(size: CGFloat(fontSize1)))
                 }
                 .padding(.horizontal, 60.0)
-                .onChange(of: isWaterCycleActive) { newValue in
+                .onChange(of: isWaterCycleActive) 
+                { newValue in
                     isToggleDisabled = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         sendTag(tag: newValue ? "StartWater" : "StopWater")
@@ -56,16 +60,14 @@ struct GardBotView: View
                         isToggleDisabled = false
                     }
                 }
-                if isToggleDisabled
-                {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle())
-                } 
-
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .opacity(isToggleDisabled ? 1 : 0)
                 if let response = serverResponse 
                 {
                     HStack {
                         Text("Watering Cycle Active: ")
+                            .font(.system(size: CGFloat(fontSize1)))
                         Image(systemName: response.watering ? "checkmark.circle.fill" : "xmark.circle.fill")
                             .resizable()
                             .frame(width: 24, height: 24)
@@ -75,27 +77,44 @@ struct GardBotView: View
                     // Display the SM "soil moisture" value
                     HStack {
                         Text("Soil Moisture: ")
+                            .font(.system(size: CGFloat(fontSize1)))
                         Text(String(format: "%.1f", response.sm))
+                            .font(.system(size: CGFloat(fontSize1)))
                     }
                     // Display the ST "soil temperature" value
                     HStack {
                         Text("Soil Temp: ")
+                            .font(.system(size: CGFloat(fontSize1)))
                         Text(String(format: "%.0f", response.st))
+                            .font(.system(size: CGFloat(fontSize1)))
                     }
                     // Display the SPH "soil pH" value
                     HStack {
                         Text("Soil pH: ")
+                            .font(.system(size: CGFloat(fontSize1)))
                         Text(String(format: "%.1f", response.sph))
+                            .font(.system(size: CGFloat(fontSize1)))
                     }
                     // Display watering time remaining
                     HStack {
-                        Text("Watering Time Remaining: ")
-                        Text("\(response.wateringTimeRemaining)")
+                        Text("Time Remaining: ")
+                            .font(.system(size: CGFloat(fontSize1)))
+                        Text(String(format: "%.1f", response.wateringTimeRemaining))
+                            .font(.system(size: CGFloat(fontSize1)))
+                    }
+                    //display Server Date
+                    HStack {
+                        Text("Server Date: ")
+                            .font(.system(size: CGFloat(fontSize1)))
+                        Text("\(response.date)")
+                            .font(.system(size: CGFloat(fontSize1)))
                     }
                     //display Server Time
                     HStack {
                         Text("Server Time: ")
-                        Text("\(response.date) \(response.time)")
+                            .font(.system(size: CGFloat(fontSize1)))
+                        Text("\(response.time)")
+                            .font(.system(size: CGFloat(fontSize1)))
                     }
                 }
             }
@@ -106,7 +125,7 @@ struct GardBotView: View
             sendTag(tag: "Refresh")
         }
         .background(
-            Image("Background")
+            Image("Background-1")
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .edgesIgnoringSafeArea(.all))
@@ -126,6 +145,7 @@ struct GardBotView: View
                 {
                     print("HTTP Request Failed \(error)")
                 }
+                
                 else if let data = data
                 {
                     if(tag == "Refresh")
