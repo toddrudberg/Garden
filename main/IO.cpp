@@ -15,7 +15,7 @@ const unsigned int Valve1 = 6;
 const unsigned int Valve2 = 7;
 const unsigned int Valve3 = 8;
 
-const unsigned long baud = 9600;
+const unsigned long baud = 115200;
 SoftwareSerial mySerial(rs485rX, rs485tX); // RX, TX
 cAdafruitLogger logger;
 

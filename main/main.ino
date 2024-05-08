@@ -21,9 +21,15 @@ void setup()
 {
   Serial.begin(baud);
   //logger.setupLogger();
+  delay(3000); // wait for console to open
   if( logger.setupRTC() )
   {
+
     Serial.println("RTC setup successful.");
+    Serial.print("Current time: ");
+    Serial.println(logger.getExcelFormattedTime());
+    Serial.print("Current Date: ");
+    Serial.println(logger.getExcelFormattedDate());
   }
   else
   {

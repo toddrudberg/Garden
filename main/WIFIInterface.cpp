@@ -55,6 +55,14 @@ bool cWIFIInterface::setupWIFI()
 {
     Serial.print("Connecting to ");
     Serial.println(ssid);
+
+    // Set static IP address
+    IPAddress ip(192, 168, 1, 9); // Replace with your desired IP
+    IPAddress gateway(192, 168, 1, 1); // Replace with your gateway address
+    IPAddress subnet(255, 255, 255, 0); // Replace with your subnet mask
+    IPAddress dns(8, 8, 8, 8); // Optional: Replace with your preferred DNS server's IP
+
+    WiFi.config(ip, dns, gateway, subnet);
     
     WiFi.begin(ssid, password);
     return WiFi.status() == WL_CONNECTED;  
