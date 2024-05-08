@@ -135,7 +135,7 @@ struct GardBotView: View
 
     func sendTag(tag: String) 
     {
-        guard let url = URL(string: "http://192.168.0.91/\(tag)") else
+        guard let url = URL(string: "http://192.168.1.9/\(tag)") else
         {
             print("Invalid URL")
             return
