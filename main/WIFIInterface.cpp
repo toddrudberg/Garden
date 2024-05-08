@@ -182,7 +182,7 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
                 doc["SEC"].set(round(totalState.soilSensorData.soilElectricalConductivity * 10.0) / 10.0);
                 doc["SPH"].set(round(totalState.soilSensorData.soilPh * 10.0) / 10.0);
                 doc["WATERING"] = totalState.watering;
-                int wateringTimeRemaining = totalState.wateringDuration - (logger.getUnixTime() - totalState.wateringTimeStart);
+                float wateringTimeRemaining = (totalState.wateringDuration - (logger.getUnixTime() - totalState.wateringTimeStart)) / 60.0;
                 if (wateringTimeRemaining < 0 || wateringTimeRemaining > 100000) {
                     wateringTimeRemaining = 0;
                 }
