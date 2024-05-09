@@ -26,6 +26,4 @@ public:
 private:
 
 };
-
-
 #endif// ADAFUITLOGGER_H
