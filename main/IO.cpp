@@ -5,7 +5,7 @@ const int rs485rX = 0;  //Definition RS485 shield RX terminal
 const int rs485tX = 1;  //Definition RS485 shield TX terminal
 const int rs485TxEnable = 2;  //Definition RS485 shield enable terminal 
 
-//rtc pins 4,5
+//rtc pins SDA 4, SCL 5
 const unsigned int sdChipSelect = 10; // SD card chip select
 //11 SPI MOSI
 //12 SPI MISO
