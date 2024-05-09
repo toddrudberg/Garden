@@ -32,10 +32,11 @@ struct ServerResponse: Codable
 struct GardBotView: View 
 {
     @State private var serverResponse: ServerResponse?
-    @State var isWaterCycleActive = false
+    @State var toggleWaterCycleActiveOn = false
     @State private var isToggleDisabled = false
-    @State private var isToggleDisabledlast = false
     @State private var fontSize1 = 30
+    @State private var processStep = 0
+    @State private var isInitializing = true
 
     let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
@@ -44,26 +45,22 @@ struct GardBotView: View
         GeometryReader { geometry in
             VStack 
             {
-                Toggle(isOn: $isWaterCycleActive) 
+                Toggle(isOn: $toggleWaterCycleActiveOn) 
                 {
                     Text("Activate Cycle")
                         .font(.system(size: CGFloat(fontSize1)))
                 }
                 .padding([.top, .leading, .trailing], 60.0)
-                .onChange(of: isWaterCycleActive) 
-                { newValue in
-                    isToggleDisabled = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        sendTag(tag: newValue ? "StartWater" : "StopWater")
+                .onChange(of: toggleWaterCycleActiveOn) 
+                    { newValue in
+                        isToggleDisabled = true
+                        processStep = 1
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                        isToggleDisabled = false
-                    }
-                }
+                .disabled(isToggleDisabled || isInitializing)
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle())
-                    .opacity(isToggleDisabled ? 1 : 0)
-                if let response = serverResponse 
+                    .opacity(isToggleDisabled || isInitializing ? 1 : 0)
+                if let response = serverResponse
                 {
                     HStack {
                         Text("Watering Cycle Active: ")
@@ -99,8 +96,8 @@ struct GardBotView: View
                     HStack {
                         Text("Time Remaining: ")
                             .font(.system(size: CGFloat(fontSize1)))
-                        Text(String(format: "%d:%02d", 
-                                    Int(response.wateringTimeRemaining), 
+                        Text(String(format: "%02d:%02d",
+                                    Int(response.wateringTimeRemaining),
                                     Int((response.wateringTimeRemaining * 60).truncatingRemainder(dividingBy: 60))))
                             .font(.system(size: CGFloat(fontSize1)))
                     }
@@ -123,8 +120,32 @@ struct GardBotView: View
         }
         .onReceive(timer) 
         { _ in
-            // Reload the WebView every time the timer fires
-            sendTag(tag: "Refresh")
+
+            switch processStep 
+            {
+                case 0:
+                    sendTag(tag: "Refresh")
+                    isInitializing = false
+                    break
+                case 1:
+                    if( toggleWaterCycleActiveOn == true)
+                    {
+                        sendTag(tag: "StartWater")
+                    }
+                    else
+                    {
+                        sendTag(tag: "StopWater")
+                    }
+                    processStep += 1
+                    break
+                case 2:
+                    sendTag(tag: "Refresh")
+                    processStep = 0
+                    isToggleDisabled = false
+                    break
+                default:
+                    break
+            }
         }
         .background(
             Image("Background-1")
@@ -135,49 +156,37 @@ struct GardBotView: View
 
     func sendTag(tag: String) 
     {
-        guard let url = URL(string: "http://192.168.0.91/\(tag)") else
+        guard let url = URL(string: "http://192.168.1.9/\(tag)") else
         {
             print("Invalid URL")
             return
         }
-
-            let task = URLSession.shared.dataTask(with: url)
-            { (data, response, error) in
-                if let error = error
+        let task = URLSession.shared.dataTask(with: url)
+        { (data, response, error) in
+            if let error = error
+            {
+                print("HTTP Request Failed \(error)")
+            }
+            
+            else if let data = data
+            {
+                if(tag == "Refresh")
                 {
-                    print("HTTP Request Failed \(error)")
-                }
-                
-                else if let data = data
-                {
-                    if(tag == "Refresh")
+                    let decoder = JSONDecoder()
+                    do
                     {
-                        if( isToggleDisabled == false || isToggleDisabledlast)
-                        {
-                            let decoder = JSONDecoder()
-                            do
-                            {
-                                let response = try decoder.decode(ServerResponse.self, from: data)
-                                print("Server Response: \(response)")
-                                serverResponse = response
-                                isToggleDisabled = false;
-                                isToggleDisabledlast = false;
-                            }
-                            catch
-                            {
-                                print("Failed to decode JSON: \(error)")
-                            }
-                        }
-                        else
-                        {
-                            isToggleDisabledlast = isToggleDisabled
-                            sendTag(tag: "Refresh");
-                        }
+                        let response = try decoder.decode(ServerResponse.self, from: data)
+                        print("Server Response: \(response)")
+                        serverResponse = response
+                    }
+                    catch
+                    {
+                        print("Failed to decode JSON: \(error)")
                     }
                 }
             }
-            task.resume()
-        
+        }
+        task.resume()
     }
 }
 
