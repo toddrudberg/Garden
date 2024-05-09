@@ -55,6 +55,14 @@ bool cWIFIInterface::setupWIFI()
 {
     Serial.print("Connecting to ");
     Serial.println(ssid);
+
+    // Set static IP address
+    IPAddress ip(192, 168, 1, 9); // Replace with your desired IP
+    IPAddress gateway(192, 168, 1, 1); // Replace with your gateway address
+    IPAddress subnet(255, 255, 255, 0); // Replace with your subnet mask
+    IPAddress dns(8, 8, 8, 8); // Optional: Replace with your preferred DNS server's IP
+
+    WiFi.config(ip, dns, gateway, subnet);
     
     WiFi.begin(ssid, password);
     return WiFi.status() == WL_CONNECTED;  
@@ -177,6 +185,7 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
                 doc["Time"] = logger.getExcelFormattedTime();
                 doc["OAT"].set(round(totalState.soilSensorData.outsideAirTemp * 10.0) / 10.0);
                 doc["OAH"].set(round(totalState.soilSensorData.outsideAirHumidity * 10.0) / 10.0);
+                doc["BP"].set(round(totalState.soilSensorData.baroPressure * 10.0) / 10.0);
                 doc["SM"].set(round(totalState.soilSensorData.soilMoisture * 10.0) / 10.0);
                 doc["ST"].set(round(totalState.soilSensorData.soilTemperature * 10.0) / 10.0);
                 doc["SEC"].set(round(totalState.soilSensorData.soilElectricalConductivity * 10.0) / 10.0);

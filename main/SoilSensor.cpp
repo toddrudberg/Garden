@@ -35,7 +35,7 @@ void cSoilSensor::runSoilSensor(sSoilSensorData* soilSensorData)
 
 void cSoilSensor::setupSoilSensor()
 {
-  mySerial.begin(baud);
+  mySerial.begin(9600);
   pinMode(rs485TxEnable, OUTPUT);
   digitalWrite(rs485TxEnable, LOW);  
 }

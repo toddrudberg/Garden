@@ -16,8 +16,8 @@ public:
 private:
     WiFiUDP ntpUDP;
     NTPClient timeClient;
-    const char* ssid = "CenturyLink2286";
-    const char* password = "vvgs3nsmrw2549";
+    const char* ssid = "Turkey Point";
+    const char* password = "gobblegobble";
     WiFiServer server;
 };
 

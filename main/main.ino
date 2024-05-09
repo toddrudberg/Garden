@@ -2,6 +2,11 @@
 #include "SoilSensor.h"
 #include "WIFIInterface.h"
 #include "ADAFruitLogger.h"
+#include "BME280.h"
+
+#define SEALEVELPRESSURE_HPA (1013.25)
+
+
 //todo:
 // 1. setup wifi
 // 2. setup realtime clock
@@ -17,6 +22,8 @@ cSoilSensor soilSensor;
 cWIFIInterface wifiInterface;
 
 sSoilSensorData soilSensorData;
+
+cBME280 bme280;
 void setup()
 {
   Serial.begin(baud);
@@ -24,6 +31,10 @@ void setup()
   if( logger.setupRTC() )
   {
     Serial.println("RTC setup successful.");
+    Serial.print("Current time: ");
+    Serial.println(logger.getExcelFormattedTime());
+    Serial.print("Current Date: ");
+    Serial.println(logger.getExcelFormattedDate());
   }
   else
   {
@@ -37,7 +48,7 @@ void setup()
 
 void loop()
 {
-
+  bme280.runBME(&soilSensorData);
   soilSensor.runSoilSensor(&soilSensorData);
   //soilSensorData.timeStamp = gTimeString;
   wifiInterface.runWIFI(&soilSensorData);
@@ -61,5 +72,45 @@ void loop()
     digitalWrite(Valve3, LOW);
     gWateringTimeStart = logger.getUnixTime() - gWateringDuration;
   }
+
+  //printValues();
+}
+
+void printValues() {
+
+  static int lastRead = millis();
+  if(millis() - lastRead > 1000)
+  {
+    lastRead = millis();
+    
+    Serial.print("Temperature = ");
+    Serial.print(soilSensorData.outsideAirTemp);
+    Serial.println(" *F");
+
+    Serial.print("Pressure = ");
+    Serial.print(soilSensorData.baroPressure);
+
+
+    Serial.print("Humidity = ");
+    Serial.print(soilSensorData.outsideAirHumidity);
+    Serial.println(" %");
+
+    Serial.print("Soil Temperature = ");
+    Serial.print(soilSensorData.soilTemperature);
+    Serial.println(" *F");
+
+    Serial.print("Soil Moisture = ");
+    Serial.print(soilSensorData.soilMoisture);
+    Serial.println(" %");
+
+    Serial.print("Soil Electrical Conductivity = ");
+    Serial.print(soilSensorData.soilElectricalConductivity);
+    Serial.println(" uS/cm");
+
+    Serial.print("Soil pH = ");
+    Serial.print(soilSensorData.soilPh);
+    Serial.println(" pH");
+  }
+
 
 }

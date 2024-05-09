@@ -8,14 +8,27 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 bool cAdafruitLogger::setupRTC()
 {
 
-    if (!rtc.begin()) 
+    for( int i = 0; i < 10; i++)
     {
-      Serial.println("Couldn't find RTC");
-      return false;
-    }   
+    if (!rtc.begin()) 
+      {
+        Serial.println("Couldn't find RTC");
+        if(i == 9)
+        {
+          return false;
+        }
+        delay(1000);
+      }   
+      else
+      {
+        Serial.println("RTC found!");
+        break;
+      }
+    }
 
     if (!rtc.initialized() || rtc.lostPower()) 
     {
+      Serial.println("May have lost power, let's set the time!");
       rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     }
   

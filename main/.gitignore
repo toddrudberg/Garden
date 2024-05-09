@@ -1,1 +1,6 @@
+<<<<<<< HEAD
 *.xcuserstate
+=======
+# Add this to your .gitignore
+*.xcuserstate
+>>>>>>> newMain
