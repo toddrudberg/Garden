@@ -25,16 +25,11 @@ cWIFIInterface wifiInterface;
 sSoilSensorData soilSensorData;
 
 
-// int freeRAM() {
-//     struct mallinfo mi = mallinfo();
-//     return mi.fordblks;
-// }
-
 int freeRAM() {
-    extern int __heap_start, *__brkval; 
-    int v; 
-    return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+    struct mallinfo mi = mallinfo();
+    return mi.fordblks;
 }
+
 
 unsigned long checkeHeapTime = 0;
 

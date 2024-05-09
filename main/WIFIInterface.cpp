@@ -105,21 +105,25 @@ void cWIFIInterface::CheckNtpTime()
 
 #define MAX_LINE_LENGTH 128
 
-bool getTag(char* currentLine, char* tag) {
-    if (strstr(currentLine, "StartWater") != NULL) {
-        strncpy(tag, "StartWater", MAX_LINE_LENGTH);
-    } else if (strstr(currentLine, "StopWater") != NULL) {
-        strncpy(tag, "StopWater", MAX_LINE_LENGTH);
-    } else if (strstr(currentLine, "Refresh") != NULL) {
-        strncpy(tag, "Refresh", MAX_LINE_LENGTH);
+bool getTag(const std::string& currentLine, std::string& tag) {
+    if (currentLine.find("StartWater") != std::string::npos) {
+        tag = "StartWater";
+    } else if (currentLine.find("StopWater") != std::string::npos) {
+        tag = "StopWater";
+    } else if (currentLine.find("Refresh") != std::string::npos) {
+        tag = "Refresh";
     } else {
         return false;
     }
     return true;
 }
 DynamicJsonDocument doc(1024);
-char tag[MAX_LINE_LENGTH] = "";
-char currentLine[MAX_LINE_LENGTH] = "";
+// char tag[MAX_LINE_LENGTH] = "";
+// char currentLine[MAX_LINE_LENGTH] = "";
+
+std::string tag;
+std::string currentLine;
+
 sTotalState totalState;
 void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
 {
@@ -140,38 +144,38 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
                 // If the byte is a newline character
                 // If the current line is blank, you got two newline characters in a row.
                 // That's the end of the client's HTTP request:
-                if (strlen(currentLine) == 0) 
+                if (currentLine.length() == 0) 
                 {
                     break;
                 } 
                 else 
                 {  // If you got a newline, then clear currentLine
-                    if( getTag(currentLine, tag) )
+                    if( getTag(currentLine.c_str(), tag) )
                     {
                         capturedTag = true;
                         break;
                     }
-                    memset(currentLine, 0, MAX_LINE_LENGTH);
+                    currentLine.clear();
                 }
-            } else if (c != '\r' && strlen(currentLine) < (MAX_LINE_LENGTH - 1)) {  
-                strncat(currentLine, &c, 1);
+            } else if (c != '\r' && currentLine.length() < (MAX_LINE_LENGTH - 1)) {  
+                currentLine += c;
             }
         }
 
         if (authenticated) 
         {
-            Serial.println(tag);
-            if (strcmp(tag, "StartWater") == 0) 
+            Serial.println(tag.c_str());
+            if (tag == "StartWater") 
             {
                 startWaterReceived = true;
                 //Serial.println("StartWater tag received.");
             }
-            else if (strcmp(tag, "StopWater") == 0) 
+            else if (tag == "StopWater") 
             {
                 startWaterReceived = false;
                 //Serial.println("StopWater tag received.");
             }
-            else if (strcmp(tag, "Refresh") == 0) 
+            else if (tag == "Refresh") 
             {
                 //Serial.println("Refresh tag received.");
             }
