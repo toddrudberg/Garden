@@ -63,10 +63,16 @@ bool firstPass = true;
 void loop()
 {
 
-bme280.runBME(&soilSensorData);
-soilSensor.runSoilSensor(&soilSensorData);
-wifiInterface.runWIFI(&soilSensorData);
-logger.RunLogger(&soilSensorData);
+
+
+
+    bme280.runBME(&soilSensorData);
+
+    soilSensor.runSoilSensor(&soilSensorData);
+
+    wifiInterface.runWIFI(&soilSensorData);
+
+    logger.RunLogger(&soilSensorData);
 
 
   if( gWatering )
@@ -90,12 +96,12 @@ logger.RunLogger(&soilSensorData);
   //printValues();
 
   //checkHeap();
-  if(millis() - checkeHeapTime > 1000 || checkeHeapTime == 0)
-  {
-    checkeHeapTime = millis();
-    Serial.print("Free Memory: ");
-    Serial.println(freeRAM());
-  }
+  // if(millis() - checkeHeapTime > 1000 || checkeHeapTime == 0)
+  // {
+  //   checkeHeapTime = millis();
+  //   Serial.print("Free Memory: ");
+  //   Serial.println(freeRAM());
+  // }
 
   firstPass = false;
 }

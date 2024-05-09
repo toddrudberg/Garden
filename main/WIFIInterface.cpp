@@ -117,7 +117,8 @@ bool getTag(const std::string& currentLine, std::string& tag) {
     }
     return true;
 }
-DynamicJsonDocument doc(1024);
+DynamicJsonDocument doc(512);
+char jsonString[512];
 // char tag[MAX_LINE_LENGTH] = "";
 // char currentLine[MAX_LINE_LENGTH] = "";
 
@@ -130,6 +131,8 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
     static bool startWaterReceived = false;
     static bool startWaterReceivedLast = false;
     bool capturedTag = false;
+    currentLine.clear();
+    tag.clear();
 
     WiFiClient client = server.available();  // Check for incoming client requests
     if (client) {  // If a client has connected
@@ -150,6 +153,7 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
                 } 
                 else 
                 {  // If you got a newline, then clear currentLine
+                    //Serial.println(currentLine.c_str());
                     if( getTag(currentLine.c_str(), tag) )
                     {
                         capturedTag = true;
@@ -199,8 +203,8 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
             if (wateringTimeRemaining < 0 || wateringTimeRemaining > 100000) {
                 wateringTimeRemaining = 0;
             }
-            doc["WATERINGTIMEREMAINING"] = wateringTimeRemaining;                // Serialize JSON document to String
-            String jsonString;
+            doc["WATERINGTIMEREMAINING"] = wateringTimeRemaining;      
+
             serializeJson(doc, jsonString);
 
             // Respond to the client
