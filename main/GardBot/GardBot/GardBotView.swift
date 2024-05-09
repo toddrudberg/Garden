@@ -7,6 +7,7 @@ struct ServerResponse: Codable
     let time: String
     let oat: Float
     let oah: Float
+    let oap: Float
     let sm: Float
     let st: Float
     let sec: Float
@@ -20,6 +21,7 @@ struct ServerResponse: Codable
         case time = "Time"
         case oat = "OAT"
         case oah = "OAH"
+        case oap = "BP"
         case sm = "SM"
         case st = "ST"
         case sec = "SEC"
@@ -34,7 +36,7 @@ struct GardBotView: View
     @State private var serverResponse: ServerResponse?
     @State var toggleWaterCycleActiveOn = false
     @State private var isToggleDisabled = false
-    @State private var fontSize1 = 30
+    @State private var fontSize1 = 28
     @State private var processStep = 0
     @State private var isInitializing = true
 
@@ -73,6 +75,25 @@ struct GardBotView: View
                     .padding()
                     // Display the SM "soil moisture" value
                     HStack {
+                        Text("Outside Air Temperature: ")
+                            .font(.system(size: CGFloat(fontSize1)))
+                        Text(String(format: "%.1f", response.oat))
+                            .font(.system(size: CGFloat(fontSize1)))
+                    }
+                    HStack {
+                        Text("Outside Air Humidity: ")
+                            .font(.system(size: CGFloat(fontSize1)))
+                        Text(String(format: "%.1f", response.oah))
+                            .font(.system(size: CGFloat(fontSize1)))
+                    }
+                    HStack {
+                        Text("Barometric Pressure inHg: ")
+                            .font(.system(size: CGFloat(fontSize1)))
+                        Text(String(format: "%.2f", response.oap * 0.02953))
+                            .font(.system(size: CGFloat(fontSize1)))
+                    }
+                    .padding(.bottom)
+                    HStack {
                         Text("Soil Moisture: ")
                             .font(.system(size: CGFloat(fontSize1)))
                         Text(String(format: "%.1f", response.sm))
@@ -92,6 +113,7 @@ struct GardBotView: View
                         Text(String(format: "%.1f", response.sph))
                             .font(.system(size: CGFloat(fontSize1)))
                     }
+                    .padding(.bottom)
                     // Display watering time remaining
                     HStack {
                         Text("Time Remaining: ")
@@ -101,6 +123,7 @@ struct GardBotView: View
                                     Int((response.wateringTimeRemaining * 60).truncatingRemainder(dividingBy: 60))))
                             .font(.system(size: CGFloat(fontSize1)))
                     }
+                    .padding(.bottom)
                     //display Server Date
                     HStack {
                         Text("Server Date: ")
