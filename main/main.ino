@@ -3,6 +3,7 @@
 #include "WIFIInterface.h"
 #include "ADAFruitLogger.h"
 #include "BME280.h"
+#include <malloc.h>
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
@@ -22,6 +23,20 @@ cSoilSensor soilSensor;
 cWIFIInterface wifiInterface;
 
 sSoilSensorData soilSensorData;
+
+
+// int freeRAM() {
+//     struct mallinfo mi = mallinfo();
+//     return mi.fordblks;
+// }
+
+int freeRAM() {
+    extern int __heap_start, *__brkval; 
+    int v; 
+    return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
+
+unsigned long checkeHeapTime = 0;
 
 cBME280 bme280;
 void setup()
@@ -74,6 +89,15 @@ void loop()
   }
 
   //printValues();
+
+  //checkHeap();
+  if(millis() - checkeHeapTime > 1000)
+  {
+    checkeHeapTime = millis();
+    Serial.print("Free Memory: ");
+    Serial.println(freeRAM());
+  }
+  
 }
 
 void printValues() {

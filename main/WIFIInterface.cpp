@@ -103,31 +103,33 @@ void cWIFIInterface::CheckNtpTime()
     }
 }
 
-bool getTag(String currentLine, String& tag) {
-    //Serial.println(currentLine);
-    if (currentLine.indexOf("StartWater") != -1) {
-        tag = "StartWater";
-    } else if (currentLine.indexOf("StopWater") != -1) {
-        tag = "StopWater";
-    } else if (currentLine.indexOf("Refresh") != -1) {
-        tag = "Refresh";
+#define MAX_LINE_LENGTH 128
+
+bool getTag(char* currentLine, char* tag) {
+    if (strstr(currentLine, "StartWater") != NULL) {
+        strncpy(tag, "StartWater", MAX_LINE_LENGTH);
+    } else if (strstr(currentLine, "StopWater") != NULL) {
+        strncpy(tag, "StopWater", MAX_LINE_LENGTH);
+    } else if (strstr(currentLine, "Refresh") != NULL) {
+        strncpy(tag, "Refresh", MAX_LINE_LENGTH);
     } else {
         return false;
     }
     return true;
 }
-
+DynamicJsonDocument doc(1024);
+char tag[MAX_LINE_LENGTH] = "";
+char currentLine[MAX_LINE_LENGTH] = "";
+sTotalState totalState;
 void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
 {
     static bool startWaterReceived = false;
     static bool startWaterReceivedLast = false;
-    String tag = "";
     bool capturedTag = false;
 
     WiFiClient client = server.available();  // Check for incoming client requests
     if (client) {  // If a client has connected
         //Serial.println("New client connected");
-        String currentLine = "";
 
         bool authenticated = true;
 
@@ -138,7 +140,7 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
                 // If the byte is a newline character
                 // If the current line is blank, you got two newline characters in a row.
                 // That's the end of the client's HTTP request:
-                if (currentLine.length() == 0) 
+                if (strlen(currentLine) == 0) 
                 {
                     break;
                 } 
@@ -149,77 +151,75 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
                         capturedTag = true;
                         break;
                     }
-                    currentLine = "";
+                    memset(currentLine, 0, MAX_LINE_LENGTH);
                 }
-            } else if (c != '\r') {  // If you got anything else but a carriage return character,
-                currentLine += c;  // add it to the end of the currentLine
+            } else if (c != '\r' && strlen(currentLine) < (MAX_LINE_LENGTH - 1)) {  
+                strncat(currentLine, &c, 1);
             }
         }
 
         if (authenticated) 
         {
             Serial.println(tag);
-            if (tag == "StartWater") 
+            if (strcmp(tag, "StartWater") == 0) 
             {
                 startWaterReceived = true;
                 //Serial.println("StartWater tag received.");
             }
-            else if (tag == "StopWater") 
+            else if (strcmp(tag, "StopWater") == 0) 
             {
                 startWaterReceived = false;
                 //Serial.println("StopWater tag received.");
             }
-            else if (tag == "Refresh") 
+            else if (strcmp(tag, "Refresh") == 0) 
             {
                 //Serial.println("Refresh tag received.");
-                sTotalState totalState;
-                totalState.soilSensorData = *soilSensorData;
-                totalState.wateringTimeStart = gWateringTimeStart;
-                totalState.wateringDuration = gWateringDuration;
-                totalState.watering = gWatering;
-
-
-                // Create a JSON document
-                DynamicJsonDocument doc(1024);
-                doc["Date"] = logger.getExcelFormattedDate();
-                doc["Time"] = logger.getExcelFormattedTime();
-                doc["OAT"].set(round(totalState.soilSensorData.outsideAirTemp * 10.0) / 10.0);
-                doc["OAH"].set(round(totalState.soilSensorData.outsideAirHumidity * 10.0) / 10.0);
-                doc["BP"].set(round(totalState.soilSensorData.baroPressure * 10.0) / 10.0);
-                doc["SM"].set(round(totalState.soilSensorData.soilMoisture * 10.0) / 10.0);
-                doc["ST"].set(round(totalState.soilSensorData.soilTemperature * 10.0) / 10.0);
-                doc["SEC"].set(round(totalState.soilSensorData.soilElectricalConductivity * 10.0) / 10.0);
-                doc["SPH"].set(round(totalState.soilSensorData.soilPh * 10.0) / 10.0);
-                doc["WATERING"] = totalState.watering;
-                float wateringTimeRemaining = (totalState.wateringDuration - (logger.getUnixTime() - totalState.wateringTimeStart)) / 60.0;
-                if (wateringTimeRemaining < 0 || wateringTimeRemaining > 100000) {
-                    wateringTimeRemaining = 0;
-                }
-                doc["WATERINGTIMEREMAINING"] = wateringTimeRemaining;                // Serialize JSON document to String
-                String jsonString;
-                serializeJson(doc, jsonString);
-
-                // Respond to the client
-                client.println("HTTP/1.1 200 OK");
-                client.println("Content-Type: application/json");
-                client.println();
-                client.println(jsonString);
             }
+            totalState.soilSensorData = *soilSensorData;
+            totalState.wateringTimeStart = gWateringTimeStart;
+            totalState.wateringDuration = gWateringDuration;
+            totalState.watering = gWatering;
+            // Create a JSON document
+
+            doc["Date"] = logger.getExcelFormattedDate();
+            doc["Time"] = logger.getExcelFormattedTime();
+            doc["OAT"].set(round(totalState.soilSensorData.outsideAirTemp * 10.0) / 10.0);
+            doc["OAH"].set(round(totalState.soilSensorData.outsideAirHumidity * 10.0) / 10.0);
+            doc["BP"].set(round(totalState.soilSensorData.baroPressure * 10.0) / 10.0);
+            doc["SM"].set(round(totalState.soilSensorData.soilMoisture * 10.0) / 10.0);
+            doc["ST"].set(round(totalState.soilSensorData.soilTemperature * 10.0) / 10.0);
+            doc["SEC"].set(round(totalState.soilSensorData.soilElectricalConductivity * 10.0) / 10.0);
+            doc["SPH"].set(round(totalState.soilSensorData.soilPh * 10.0) / 10.0);
+            doc["WATERING"] = totalState.watering;
+            float wateringTimeRemaining = (totalState.wateringDuration - (logger.getUnixTime() - totalState.wateringTimeStart)) / 60.0;
+            if (wateringTimeRemaining < 0 || wateringTimeRemaining > 100000) {
+                wateringTimeRemaining = 0;
+            }
+            doc["WATERINGTIMEREMAINING"] = wateringTimeRemaining;                // Serialize JSON document to String
+            String jsonString;
+            serializeJson(doc, jsonString);
+
+            // Respond to the client
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-Type: application/json");
+            client.println();
+            client.println(jsonString);
+            
         }
 
         client.stop();  // Close the connection
-        //Serial.println("Client disconnected");
+        Serial.println("Client disconnected");
 
         if(startWaterReceived && !startWaterReceivedLast && !gWatering)
         {
-            Serial.println("StartWater tag received, starting watering.");
+            //Serial.println("StartWater tag received, starting watering.");
             gWatering = true;
             gWateringDuration = 60 * 10; // 10 minutes
             gWateringTimeStart = logger.getUnixTime();
         }
         else if(!startWaterReceived && startWaterReceivedLast)
         {
-            Serial.println("StopWater tag received, stopping watering.");
+            //Serial.println("StopWater tag received, stopping watering.");
             gWatering = false;
         }
         startWaterReceivedLast = startWaterReceived;
