@@ -1,6 +1,24 @@
-<<<<<<< HEAD
+# Xcode
+.DS_Store
 *.xcuserstate
-=======
-# Add this to your .gitignore
-*.xcuserstate
->>>>>>> newMain
+xcuserdata/
+project.xcworkspace/
+*.xcworkspace/xcuserdata/
+*.ibuserstate
+*.gcno
+*.gcda
+*.gcov
+*.xcarchive
+
+# Derived Data
+DerivedData/
+
+# Swift Package Manager
+.build/
+
+# Carthage
+Carthage/Build/
+
+# CocoaPods
+Pods/
+Podfile.lock
