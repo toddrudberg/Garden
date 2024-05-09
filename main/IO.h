@@ -24,6 +24,7 @@ struct sSoilSensorData
   char* timeStamp;
   float outsideAirTemp;
   float outsideAirHumidity;
+  float baroPressure;
   float soilTemperature;
   float soilElectricalConductivity;
   float soilMoisture;

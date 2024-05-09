@@ -185,6 +185,7 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
                 doc["Time"] = logger.getExcelFormattedTime();
                 doc["OAT"].set(round(totalState.soilSensorData.outsideAirTemp * 10.0) / 10.0);
                 doc["OAH"].set(round(totalState.soilSensorData.outsideAirHumidity * 10.0) / 10.0);
+                doc["BP"].set(round(totalState.soilSensorData.baroPressure * 10.0) / 10.0);
                 doc["SM"].set(round(totalState.soilSensorData.soilMoisture * 10.0) / 10.0);
                 doc["ST"].set(round(totalState.soilSensorData.soilTemperature * 10.0) / 10.0);
                 doc["SEC"].set(round(totalState.soilSensorData.soilElectricalConductivity * 10.0) / 10.0);
