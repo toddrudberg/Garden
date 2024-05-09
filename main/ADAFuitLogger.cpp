@@ -102,7 +102,7 @@ void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData)
 
 bool cAdafruitLogger::setupLogger()
 {
-    pinMode(sdChipSelect, OUTPUT);
+
     //SPI.begin();
     if (!SD.begin(sdChipSelect))
     {
