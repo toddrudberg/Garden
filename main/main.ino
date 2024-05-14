@@ -60,19 +60,34 @@ void setup()
 }
 
 bool firstPass = true;
+unsigned long epochTime = 0;
 void loop()
 {
-
-
-
+    unsigned long epoch = 0;
+    if(wifiInterface.CheckNtpTime(&epoch))
+    {
+      if(rtcFailed)
+      {
+        epochTime = epoch;
+      }
+      else 
+      {
+        logger.SetTime(epoch);
+        epochTime = logger.getUnixTime();
+      }
+    }
+    
 
     bme280.runBME(&soilSensorData);
 
     soilSensor.runSoilSensor(&soilSensorData);
 
-    wifiInterface.runWIFI(&soilSensorData);
+    time_t myTime = static_cast<time_t>(epochTime);
+    wifiInterface.runWIFI(&soilSensorData, myTime);
 
     logger.RunLogger(&soilSensorData);
+
+
 
 
   if( gWatering )

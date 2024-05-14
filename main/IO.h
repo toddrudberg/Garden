@@ -18,6 +18,8 @@ extern const unsigned int Valve3;
 
 extern const unsigned long baud;
 
+extern bool rtcFailed;
+
 struct sSoilSensorData
 {
     char* dateStamp;

@@ -23,6 +23,7 @@ public:
     char* getExcelFormattedDate();
     char* getExcelFormattedTime();
     uint32_t getUnixTime();
+    void SetTime(unsigned long unixTime);
 private:
 
 };

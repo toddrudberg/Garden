@@ -15,6 +15,7 @@ bool cAdafruitLogger::setupRTC()
         Serial.println("Couldn't find RTC");
         if(i == 9)
         {
+          rtcFailed = true;
           return false;
         }
         delay(1000);
@@ -26,18 +27,42 @@ bool cAdafruitLogger::setupRTC()
       }
     }
 
-    if (!rtc.initialized() || rtc.lostPower()) 
-    {
-      Serial.println("May have lost power, let's set the time!");
-      rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    }
-  
+    // if (!rtc.initialized() || rtc.lostPower()) 
+    // {
+    //   Serial.println("May have lost power, let's set the time!");
+    //   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    // }
+
     Serial.println("RTC is setup and running!");
     // When the RTC was stopped and stays connected to the battery, it has
     // to be restarted by clearing the STOP bit. Let's do this to ensure
     // the RTC is running.
     rtc.start();
+    rtc.adjust(DateTime(1033776000));
     return true;
+}
+
+void cAdafruitLogger::SetTime(unsigned long unixTime)
+{
+  // Get the current time from the RTC
+  DateTime now = rtc.now();
+
+  // Calculate the difference between the current time and unixTime
+  long difference = labs(now.unixtime() - unixTime);
+  // Serial.print("Current Time: ");
+  // Serial.println(now.unixtime());
+  // Serial.print("Unix Time: ");
+  // Serial.println(unixTime);
+  // Only adjust the RTC time if the difference is more than 10 seconds
+  // Serial.print("Difference: ");
+  // Serial.println(difference);
+  if (difference > 5) 
+  {
+    rtc.adjust(DateTime(unixTime));
+    Serial.print("RTC time adjusted by ");
+    Serial.print(difference);
+    Serial.println(" seconds.");
+  }
 }
 
 uint32_t cAdafruitLogger::getUnixTime() {

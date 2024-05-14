@@ -4,7 +4,7 @@ cWIFIInterface::cWIFIInterface() : timeClient(ntpUDP, "pool.ntp.org", -25200), s
 {
 }
 
-void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData)
+void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
 {
     static int state = 0;
     switch(state)
@@ -43,7 +43,7 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData)
             if( millis() - timeOut > 250)
             {
                 timeOut = millis();
-                checkWIFI(soilSensorData);
+                checkWIFI(soilSensorData, epochTime);
             }
             break;
         }
@@ -68,39 +68,34 @@ bool cWIFIInterface::setupWIFI()
     return WiFi.status() == WL_CONNECTED;  
 }
 
-void cWIFIInterface::CheckNtpTime()
+bool cWIFIInterface::CheckNtpTime(unsigned long *epochTime)
 {
-    static unsigned long lastTime = 0;
     static unsigned long startTime = millis();
     static unsigned long lastNtpTime = 0;
-    static String timeString = {"12:00:00"};
 
-    // syncronizing time with NTP server, this will need to move to rtc later. 
-    if (millis() - lastTime > 1000) 
+
+    if (millis() - startTime > 60000 || lastNtpTime == 0) // Check NTP time every minute or if it's the first run
     {
-        lastTime = millis();
+        Serial.println("Checking NTP time...");
         if (timeClient.update())
         {
-            startTime = millis() - timeClient.getSeconds() * 1000;
-            lastNtpTime = timeClient.getHours() * 3600 + timeClient.getMinutes() * 60 + timeClient.getSeconds();
-            //Serial.println(timeClient.getFormattedTime());
-            timeString = String(timeClient.getFormattedTime());
-            //timeClient.getFormattedTime();
+            Serial.println("NTP time updated.");
+            *epochTime = timeClient.getEpochTime();
+            lastNtpTime = *epochTime; // Update lastNtpTime with the new NTP time
+            startTime = millis(); // Update startTime with the current millis
+            return false;
         } 
         else 
         {
-            unsigned long elapsedSeconds = (millis() - startTime) / 1000;
-            unsigned long currentTime = lastNtpTime + elapsedSeconds;
-            unsigned int seconds = currentTime % 60;
-            unsigned int minutes = (currentTime / 60) % 60;
-            unsigned int hours = (currentTime / 3600) % 24;
-            char time_string[9];
-            sprintf(time_string, "%02u:%02u:%02u", hours, minutes, seconds);
-            timeString = String(time_string);
-            //Serial.println(timeString);
+            Serial.println("NTP time update failed.");
         }
-        strncpy(gTimeString, timeString.c_str(), timeString.length() + 1);
-    }
+    } 
+
+    // If NTP update failed or it hasn't been a minute since the last update, calculate the time using millis
+    unsigned long elapsedSeconds = (millis() - startTime) / 1000;
+    *epochTime = lastNtpTime + elapsedSeconds;
+
+    return true;
 }
 
 #define MAX_LINE_LENGTH 128
@@ -126,7 +121,7 @@ std::string tag;
 std::string currentLine;
 
 sTotalState totalState;
-void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
+void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
 {
     static bool startWaterReceived = false;
     static bool startWaterReceivedLast = false;
@@ -188,9 +183,21 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
             totalState.wateringDuration = gWateringDuration;
             totalState.watering = gWatering;
             // Create a JSON document
+            
+            // Convert the epoch time to a struct tm
+            struct tm *timeStruct = localtime(&epochTime);
+            // Create a buffer to hold the time string
+            char dateBuffer[11];
+            char timeBuffer[9];
+            // Format the struct tm as a date string
+            strftime(dateBuffer, sizeof(dateBuffer), "%Y-%m-%d", timeStruct);
 
-            doc["Date"] = logger.getExcelFormattedDate();
-            doc["Time"] = logger.getExcelFormattedTime();
+            // Format the struct tm as a time string
+            strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", timeStruct);
+
+            // Add the time string to the JSON document
+            doc["Time"] = timeBuffer;
+            doc["Date"] = dateBuffer;
             doc["OAT"].set(round(totalState.soilSensorData.outsideAirTemp * 10.0) / 10.0);
             doc["OAH"].set(round(totalState.soilSensorData.outsideAirHumidity * 10.0) / 10.0);
             doc["BP"].set(round(totalState.soilSensorData.baroPressure * 10.0) / 10.0);
@@ -205,6 +212,7 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
             }
             doc["WATERINGTIMEREMAINING"] = wateringTimeRemaining;      
 
+            //these are set to 512. you want to verify that this is enough space for your json object if you add more fields.
             serializeJson(doc, jsonString);
 
             // Respond to the client
