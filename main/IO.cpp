@@ -26,3 +26,5 @@ char gTimeString[10] = "00:00:00";
 unsigned long gWateringTimeStart = 0;
 unsigned long gWateringDuration = 0;
 bool gWatering = false;
+
+bool rtcFailed = false;

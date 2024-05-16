@@ -18,7 +18,8 @@ class cBME280 {
 public:
     bool startBME();
     sBME280Data readBME();
-  void runBME(sSoilSensorData* sensorData);
+    void runBME(sSoilSensorData* sensorData);
+
 };
 
 #endif // BME280_H

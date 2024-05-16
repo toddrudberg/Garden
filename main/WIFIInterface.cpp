@@ -4,7 +4,7 @@ cWIFIInterface::cWIFIInterface() : timeClient(ntpUDP, "pool.ntp.org", -25200), s
 {
 }
 
-void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData)
+void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
 {
     static int state = 0;
     switch(state)
@@ -43,7 +43,7 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData)
             if( millis() - timeOut > 250)
             {
                 timeOut = millis();
-                checkWIFI(soilSensorData);
+                checkWIFI(soilSensorData, epochTime);
             }
             break;
         }
@@ -68,66 +68,70 @@ bool cWIFIInterface::setupWIFI()
     return WiFi.status() == WL_CONNECTED;  
 }
 
-void cWIFIInterface::CheckNtpTime()
+bool cWIFIInterface::CheckNtpTime(unsigned long *epochTime)
 {
-    static unsigned long lastTime = 0;
     static unsigned long startTime = millis();
     static unsigned long lastNtpTime = 0;
-    static String timeString = {"12:00:00"};
 
-    // syncronizing time with NTP server, this will need to move to rtc later. 
-    if (millis() - lastTime > 1000) 
+
+    if (millis() - startTime > 60000 || lastNtpTime == 0) // Check NTP time every minute or if it's the first run
     {
-        lastTime = millis();
+        Serial.println("Checking NTP time...");
         if (timeClient.update())
         {
-            startTime = millis() - timeClient.getSeconds() * 1000;
-            lastNtpTime = timeClient.getHours() * 3600 + timeClient.getMinutes() * 60 + timeClient.getSeconds();
-            //Serial.println(timeClient.getFormattedTime());
-            timeString = String(timeClient.getFormattedTime());
-            //timeClient.getFormattedTime();
+            Serial.println("NTP time updated.");
+            *epochTime = timeClient.getEpochTime();
+            lastNtpTime = *epochTime; // Update lastNtpTime with the new NTP time
+            startTime = millis(); // Update startTime with the current millis
+            return false;
         } 
         else 
         {
-            unsigned long elapsedSeconds = (millis() - startTime) / 1000;
-            unsigned long currentTime = lastNtpTime + elapsedSeconds;
-            unsigned int seconds = currentTime % 60;
-            unsigned int minutes = (currentTime / 60) % 60;
-            unsigned int hours = (currentTime / 3600) % 24;
-            char time_string[9];
-            sprintf(time_string, "%02u:%02u:%02u", hours, minutes, seconds);
-            timeString = String(time_string);
-            //Serial.println(timeString);
+            Serial.println("NTP time update failed.");
         }
-        strncpy(gTimeString, timeString.c_str(), timeString.length() + 1);
-    }
+    } 
+
+    // If NTP update failed or it hasn't been a minute since the last update, calculate the time using millis
+    unsigned long elapsedSeconds = (millis() - startTime) / 1000;
+    *epochTime = lastNtpTime + elapsedSeconds;
+
+    return true;
 }
 
-bool getTag(String currentLine, String& tag) {
-    //Serial.println(currentLine);
-    if (currentLine.indexOf("StartWater") != -1) {
+#define MAX_LINE_LENGTH 128
+
+bool getTag(const std::string& currentLine, std::string& tag) {
+    if (currentLine.find("StartWater") != std::string::npos) {
         tag = "StartWater";
-    } else if (currentLine.indexOf("StopWater") != -1) {
+    } else if (currentLine.find("StopWater") != std::string::npos) {
         tag = "StopWater";
-    } else if (currentLine.indexOf("Refresh") != -1) {
+    } else if (currentLine.find("Refresh") != std::string::npos) {
         tag = "Refresh";
     } else {
         return false;
     }
     return true;
 }
+DynamicJsonDocument doc(512);
+char jsonString[512];
+// char tag[MAX_LINE_LENGTH] = "";
+// char currentLine[MAX_LINE_LENGTH] = "";
 
-void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
+std::string tag;
+std::string currentLine;
+
+sTotalState totalState;
+void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
 {
     static bool startWaterReceived = false;
     static bool startWaterReceivedLast = false;
-    String tag = "";
     bool capturedTag = false;
+    currentLine.clear();
+    tag.clear();
 
     WiFiClient client = server.available();  // Check for incoming client requests
     if (client) {  // If a client has connected
         //Serial.println("New client connected");
-        String currentLine = "";
 
         bool authenticated = true;
 
@@ -144,21 +148,22 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
                 } 
                 else 
                 {  // If you got a newline, then clear currentLine
-                    if( getTag(currentLine, tag) )
+                    //Serial.println(currentLine.c_str());
+                    if( getTag(currentLine.c_str(), tag) )
                     {
                         capturedTag = true;
                         break;
                     }
-                    currentLine = "";
+                    currentLine.clear();
                 }
-            } else if (c != '\r') {  // If you got anything else but a carriage return character,
-                currentLine += c;  // add it to the end of the currentLine
+            } else if (c != '\r' && currentLine.length() < (MAX_LINE_LENGTH - 1)) {  
+                currentLine += c;
             }
         }
 
         if (authenticated) 
         {
-            Serial.println(tag);
+            Serial.println(tag.c_str());
             if (tag == "StartWater") 
             {
                 startWaterReceived = true;
@@ -172,54 +177,65 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData)
             else if (tag == "Refresh") 
             {
                 //Serial.println("Refresh tag received.");
-                sTotalState totalState;
-                totalState.soilSensorData = *soilSensorData;
-                totalState.wateringTimeStart = gWateringTimeStart;
-                totalState.wateringDuration = gWateringDuration;
-                totalState.watering = gWatering;
-
-
-                // Create a JSON document
-                DynamicJsonDocument doc(1024);
-                doc["Date"] = logger.getExcelFormattedDate();
-                doc["Time"] = logger.getExcelFormattedTime();
-                doc["OAT"].set(round(totalState.soilSensorData.outsideAirTemp * 10.0) / 10.0);
-                doc["OAH"].set(round(totalState.soilSensorData.outsideAirHumidity * 10.0) / 10.0);
-                doc["BP"].set(round(totalState.soilSensorData.baroPressure * 10.0) / 10.0);
-                doc["SM"].set(round(totalState.soilSensorData.soilMoisture * 10.0) / 10.0);
-                doc["ST"].set(round(totalState.soilSensorData.soilTemperature * 10.0) / 10.0);
-                doc["SEC"].set(round(totalState.soilSensorData.soilElectricalConductivity * 10.0) / 10.0);
-                doc["SPH"].set(round(totalState.soilSensorData.soilPh * 10.0) / 10.0);
-                doc["WATERING"] = totalState.watering;
-                float wateringTimeRemaining = (totalState.wateringDuration - (logger.getUnixTime() - totalState.wateringTimeStart)) / 60.0;
-                if (wateringTimeRemaining < 0 || wateringTimeRemaining > 100000) {
-                    wateringTimeRemaining = 0;
-                }
-                doc["WATERINGTIMEREMAINING"] = wateringTimeRemaining;                // Serialize JSON document to String
-                String jsonString;
-                serializeJson(doc, jsonString);
-
-                // Respond to the client
-                client.println("HTTP/1.1 200 OK");
-                client.println("Content-Type: application/json");
-                client.println();
-                client.println(jsonString);
             }
+            totalState.soilSensorData = *soilSensorData;
+            totalState.wateringTimeStart = gWateringTimeStart;
+            totalState.wateringDuration = gWateringDuration;
+            totalState.watering = gWatering;
+            // Create a JSON document
+            
+            // Convert the epoch time to a struct tm
+            struct tm *timeStruct = localtime(&epochTime);
+            // Create a buffer to hold the time string
+            char dateBuffer[11];
+            char timeBuffer[9];
+            // Format the struct tm as a date string
+            strftime(dateBuffer, sizeof(dateBuffer), "%Y-%m-%d", timeStruct);
+
+            // Format the struct tm as a time string
+            strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", timeStruct);
+
+            // Add the time string to the JSON document
+            doc["Time"] = timeBuffer;
+            doc["Date"] = dateBuffer;
+            doc["OAT"].set(round(totalState.soilSensorData.outsideAirTemp * 10.0) / 10.0);
+            doc["OAH"].set(round(totalState.soilSensorData.outsideAirHumidity * 10.0) / 10.0);
+            doc["BP"].set(round(totalState.soilSensorData.baroPressure * 10.0) / 10.0);
+            doc["SM"].set(round(totalState.soilSensorData.soilMoisture * 10.0) / 10.0);
+            doc["ST"].set(round(totalState.soilSensorData.soilTemperature * 10.0) / 10.0);
+            doc["SEC"].set(round(totalState.soilSensorData.soilElectricalConductivity * 10.0) / 10.0);
+            doc["SPH"].set(round(totalState.soilSensorData.soilPh * 10.0) / 10.0);
+            doc["WATERING"] = totalState.watering;
+            float wateringTimeRemaining = (totalState.wateringDuration - (logger.getUnixTime() - totalState.wateringTimeStart)) / 60.0;
+            if (wateringTimeRemaining < 0 || wateringTimeRemaining > 100000) {
+                wateringTimeRemaining = 0;
+            }
+            doc["WATERINGTIMEREMAINING"] = wateringTimeRemaining;      
+
+            //these are set to 512. you want to verify that this is enough space for your json object if you add more fields.
+            serializeJson(doc, jsonString);
+
+            // Respond to the client
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-Type: application/json");
+            client.println();
+            client.println(jsonString);
+            
         }
 
         client.stop();  // Close the connection
-        //Serial.println("Client disconnected");
+        Serial.println("Client disconnected");
 
         if(startWaterReceived && !startWaterReceivedLast && !gWatering)
         {
-            Serial.println("StartWater tag received, starting watering.");
+            //Serial.println("StartWater tag received, starting watering.");
             gWatering = true;
             gWateringDuration = 60 * 10; // 10 minutes
             gWateringTimeStart = logger.getUnixTime();
         }
         else if(!startWaterReceived && startWaterReceivedLast)
         {
-            Serial.println("StopWater tag received, stopping watering.");
+            //Serial.println("StopWater tag received, stopping watering.");
             gWatering = false;
         }
         startWaterReceivedLast = startWaterReceived;

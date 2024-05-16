@@ -3,6 +3,7 @@
 #include "WIFIInterface.h"
 #include "ADAFruitLogger.h"
 #include "BME280.h"
+#include <malloc.h>
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
@@ -22,6 +23,15 @@ cSoilSensor soilSensor;
 cWIFIInterface wifiInterface;
 
 sSoilSensorData soilSensorData;
+
+
+int freeRAM() {
+    struct mallinfo mi = mallinfo();
+    return mi.fordblks;
+}
+
+
+unsigned long checkeHeapTime = 0;
 
 cBME280 bme280;
 void setup()
@@ -44,15 +54,40 @@ void setup()
   pinMode(Valve1, OUTPUT);
   pinMode(Valve2, OUTPUT);
   pinMode(Valve3, OUTPUT);
+  pinMode(sdChipSelect, OUTPUT);
+
+
 }
 
+bool firstPass = true;
+unsigned long epochTime = 0;
 void loop()
 {
-  bme280.runBME(&soilSensorData);
-  soilSensor.runSoilSensor(&soilSensorData);
-  //soilSensorData.timeStamp = gTimeString;
-  wifiInterface.runWIFI(&soilSensorData);
-  logger.RunLogger(&soilSensorData);
+    unsigned long epoch = 0;
+    if(wifiInterface.CheckNtpTime(&epoch))
+    {
+      if(rtcFailed)
+      {
+        epochTime = epoch;
+      }
+      else 
+      {
+        logger.SetTime(epoch);
+        epochTime = logger.getUnixTime();
+      }
+    }
+    
+
+    bme280.runBME(&soilSensorData);
+
+    soilSensor.runSoilSensor(&soilSensorData);
+
+    time_t myTime = static_cast<time_t>(epochTime);
+    wifiInterface.runWIFI(&soilSensorData, myTime);
+
+    logger.RunLogger(&soilSensorData);
+
+
 
 
   if( gWatering )
@@ -74,6 +109,16 @@ void loop()
   }
 
   //printValues();
+
+  //checkHeap();
+  // if(millis() - checkeHeapTime > 1000 || checkeHeapTime == 0)
+  // {
+  //   checkeHeapTime = millis();
+  //   Serial.print("Free Memory: ");
+  //   Serial.println(freeRAM());
+  // }
+
+  firstPass = false;
 }
 
 void printValues() {

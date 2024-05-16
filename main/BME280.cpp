@@ -44,7 +44,7 @@ void cBME280::runBME(sSoilSensorData* sensorData)
 
                 lastRead = millis();
                 bmeData.temperature = (float)(bme.readTemperature() * 9.0 / 5.0 + 32.0);
-                bmeData.pressure = bme.readPressure() / 100.0F;
+                bmeData.pressure = bme.readPressure() * 0.02953 / 100.0F;
                 bmeData.humidity = (float)bme.readHumidity();
             }
             sensorData->outsideAirTemp = bmeData.temperature;
@@ -56,8 +56,6 @@ void cBME280::runBME(sSoilSensorData* sensorData)
             processState = 0;
             break;
     }
-
-
 }
 
 bool cBME280::startBME() {

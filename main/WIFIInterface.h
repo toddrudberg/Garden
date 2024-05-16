@@ -9,9 +9,9 @@ class cWIFIInterface
 public:
     cWIFIInterface();
     bool setupWIFI();
-    void checkWIFI(sSoilSensorData* soilSensorData);
-    void runWIFI(sSoilSensorData* soilSensorData);
-    void CheckNtpTime();
+    void checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime);
+    void runWIFI(sSoilSensorData* soilSensorData, time_t epochTime);
+    bool CheckNtpTime(unsigned long *epoch);
 
 private:
     WiFiUDP ntpUDP;
