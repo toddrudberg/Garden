@@ -38,7 +38,7 @@ bool cAdafruitLogger::setupRTC()
     // to be restarted by clearing the STOP bit. Let's do this to ensure
     // the RTC is running.
     rtc.start();
-    rtc.adjust(DateTime(1033776000));
+    //rtc.adjust(DateTime(1033776000));
     return true;
 }
 

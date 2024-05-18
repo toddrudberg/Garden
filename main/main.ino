@@ -5,6 +5,7 @@
 #include "BME280.h"
 #include <malloc.h>
 
+
 #define SEALEVELPRESSURE_HPA (1013.25)
 
 
@@ -49,6 +50,7 @@ void setup()
   else
   {
     Serial.println("RTC setup failed.");
+    softwareReset();
   }
 
   pinMode(Valve1, OUTPUT);
@@ -75,6 +77,10 @@ void loop()
         logger.SetTime(epoch);
         epochTime = logger.getUnixTime();
       }
+    }
+    else
+    {
+      epochTime = logger.getUnixTime();
     }
     
 
@@ -158,4 +164,10 @@ void printValues() {
   }
 
 
+}
+
+void softwareReset() 
+{
+  // Trigger a software reset using the NVIC_SystemReset function
+  NVIC_SystemReset();
 }
