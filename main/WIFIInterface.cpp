@@ -12,8 +12,8 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
         case 0:
         {
             static int timeOut = millis();
-            static bool connectionFailed = false;
-            if( !connectionFailed && setupWIFI())
+
+            if( !wifiConnectionFailed && setupWIFI())
             {
                 // If successfully connected to WiFi, print IP address
                 Serial.println("Connected to WiFi");
@@ -27,12 +27,12 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
             }
             else
             {
-                connectionFailed = true;
-                if(millis() - timeOut > 5000)
+                wifiConnectionFailed = true;
+                if(millis() - timeOut > 2000)
                 {
                     Serial.println("WIFI setup failed, retrying...");
                     timeOut = millis();
-                    connectionFailed = false;
+                    wifiConnectionFailed = false;
                 }
             }
             break;

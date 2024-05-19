@@ -19,6 +19,7 @@ extern const unsigned int Valve3;
 extern const unsigned long baud;
 
 extern bool rtcFailed;
+extern bool wifiConnectionFailed;
 
 struct sSoilSensorData
 {
