@@ -89,7 +89,7 @@ struct GardBotView: View
                     HStack {
                         Text("Barometric Pressure inHg: ")
                             .font(.system(size: CGFloat(fontSize1)))
-                        Text(String(format: "%.2f", response.oap * 0.02953))
+                        Text(String(format: "%.2f", response.oap))
                             .font(.system(size: CGFloat(fontSize1)))
                     }
                     .padding(.bottom)

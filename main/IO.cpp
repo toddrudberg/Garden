@@ -28,3 +28,4 @@ unsigned long gWateringDuration = 0;
 bool gWatering = false;
 
 bool rtcFailed = false;
+bool wifiConnectionFailed = false;

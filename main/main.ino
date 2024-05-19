@@ -4,7 +4,9 @@
 #include "ADAFruitLogger.h"
 #include "BME280.h"
 #include <malloc.h>
+#include <EEPROM.h>
 
+#define RESET_FLAG_ADDRESS 0 // EEPROM address to store the reset flag
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
@@ -38,6 +40,31 @@ cBME280 bme280;
 void setup()
 {
   Serial.begin(baud);
+  pinMode(Valve1, OUTPUT);
+  pinMode(Valve2, OUTPUT);
+  pinMode(Valve3, OUTPUT);
+  pinMode(sdChipSelect, OUTPUT);
+  digitalWrite(Valve1, HIGH);
+  delay(1000);
+  digitalWrite(Valve1, LOW);
+  delay(500);
+  if (EEPROM.read(RESET_FLAG_ADDRESS) == 0) // Check if the reset flag is 0 (i.e., the software reset hasn't been performed yet)
+  {
+    Serial.println("Testing Software Reset");
+    delay(1000);
+    EEPROM.write(RESET_FLAG_ADDRESS, 1); // Set the reset flag to 1 (i.e., the software reset has been performed)
+    softwareReset();
+  }
+  else
+  {
+    Serial.println("Reset already performed");
+    EEPROM.write(RESET_FLAG_ADDRESS, 0);
+  }
+  digitalWrite(Valve1, HIGH);
+  delay(1000);
+  digitalWrite(Valve1, LOW);
+
+
   //logger.setupLogger();
   if( logger.setupRTC() )
   {
@@ -53,10 +80,7 @@ void setup()
     softwareReset();
   }
 
-  pinMode(Valve1, OUTPUT);
-  pinMode(Valve2, OUTPUT);
-  pinMode(Valve3, OUTPUT);
-  pinMode(sdChipSelect, OUTPUT);
+
 
 
 }
@@ -66,7 +90,7 @@ unsigned long epochTime = 0;
 void loop()
 {
     unsigned long epoch = 0;
-    if(wifiInterface.CheckNtpTime(&epoch))
+    if(!firstPass && !wifiConnectionFailed && wifiInterface.CheckNtpTime(&epoch))
     {
       if(rtcFailed)
       {
@@ -93,6 +117,10 @@ void loop()
 
     logger.RunLogger(&soilSensorData);
 
+  if(wifiConnectionFailed && rtcFailed)
+  {
+    softwareReset();
+  }
 
 
 

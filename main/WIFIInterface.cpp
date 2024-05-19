@@ -12,8 +12,8 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
         case 0:
         {
             static int timeOut = millis();
-            static bool connectionFailed = false;
-            if( !connectionFailed && setupWIFI())
+
+            if( !wifiConnectionFailed && setupWIFI())
             {
                 // If successfully connected to WiFi, print IP address
                 Serial.println("Connected to WiFi");
@@ -27,12 +27,12 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
             }
             else
             {
-                connectionFailed = true;
-                if(millis() - timeOut > 5000)
+                wifiConnectionFailed = true;
+                if(millis() - timeOut > 2000)
                 {
                     Serial.println("WIFI setup failed, retrying...");
                     timeOut = millis();
-                    connectionFailed = false;
+                    wifiConnectionFailed = false;
                 }
             }
             break;
@@ -40,10 +40,25 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
         case 1:
         {
             static int timeOut = millis();
+            static int retryCount = 0;
+            
             if( millis() - timeOut > 250)
             {
-                timeOut = millis();
-                checkWIFI(soilSensorData, epochTime);
+                if( WiFi.status() == WL_CONNECTED )
+                {
+                    timeOut = millis();
+                    checkWIFI(soilSensorData, epochTime);
+                    retryCount = 0;
+                }
+                else
+                {
+                    if(retryCount++ > 100)
+                    {
+                        Serial.println("WiFi connection lost, retrying...");
+                        state = 0;
+                        wifiConnectionFailed = true;
+                    }
+                }
             }
             break;
         }
@@ -77,7 +92,7 @@ bool cWIFIInterface::CheckNtpTime(unsigned long *epochTime)
     if (millis() - startTime > 60000 || lastNtpTime == 0) // Check NTP time every minute or if it's the first run
     {
         Serial.println("Checking NTP time...");
-        if (timeClient.update())
+        if (WiFi.status() == WL_CONNECTED && timeClient.update())
         {
             Serial.println("NTP time updated.");
             *epochTime = timeClient.getEpochTime();
