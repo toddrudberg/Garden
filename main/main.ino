@@ -107,7 +107,7 @@ void loop()
       epochTime = logger.getUnixTime();
     }
     
-
+    soilSensorData.epochTime = epochTime;
     bme280.runBME(&soilSensorData);
 
     soilSensor.runSoilSensor(&soilSensorData);
