@@ -27,5 +27,7 @@ unsigned long gWateringTimeStart = 0;
 unsigned long gWateringDuration = 0;
 bool gWatering = false;
 
+bool gAutoWateringEnabled = false;
+
 bool rtcFailed = false;
 bool wifiConnectionFailed = false;

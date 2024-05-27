@@ -153,11 +153,11 @@ struct GardBotView: View
                 case 1:
                     if( toggleWaterCycleActiveOn == true)
                     {
-                        sendTag(tag: "StartWater")
+                        sendTag(tag: "enableManualWater")
                     }
                     else
                     {
-                        sendTag(tag: "StopWater")
+                        sendTag(tag: "disableManualWater")
                     }
                     processStep += 1
                     break
@@ -187,7 +187,11 @@ struct GardBotView: View
             print("Invalid URL")
             return
         }
-        let task = URLSession.shared.dataTask(with: url)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = tag == "Refresh" ? "GET" : "POST"
+
+        let task = URLSession.shared.dataTask(with: request)
         { (data, response, error) in
             if let error = error
             {

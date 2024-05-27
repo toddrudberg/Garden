@@ -9,13 +9,18 @@ class cWIFIInterface
 {
 public:
     cWIFIInterface();
-    bool setupWIFI();
-    void update_dropServer(sSoilSensorData* soilSensorData, time_t epochTime);
-    void checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime);
-    void runWIFI(sSoilSensorData* soilSensorData, time_t epochTime);
     bool CheckNtpTime(unsigned long *epoch);
+    void runWIFI(sSoilSensorData* soilSensorData, time_t epochTime);
 
 private:
+    void update_dropServer(sSoilSensorData* soilSensorData, time_t epochTime);
+    void read_dropServer();
+    void checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime);
+    bool setupWIFI();
+    void setManualWaterStatus(bool request);
+    void setAutolWaterStatus(bool request);
+
+
     WiFiUDP ntpUDP;
     NTPClient timeClient;
     const char* ssid = "Turkey Point";

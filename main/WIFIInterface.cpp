@@ -1,5 +1,7 @@
 #include "WIFIInterface.h"
 
+
+
 cWIFIInterface::cWIFIInterface() : timeClient(ntpUDP, "pool.ntp.org", -25200), server(80) 
 {
 }
@@ -47,6 +49,7 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
                 if( WiFi.status() == WL_CONNECTED )
                 {
                     timeOut = millis();
+                    read_dropServer();
                     update_dropServer(soilSensorData, epochTime);
                     checkWIFI(soilSensorData, epochTime);
                     retryCount = 0;
@@ -133,6 +136,110 @@ char jsonString[512];
 std::string tag;
 std::string currentLine;
 sTotalState totalState;
+
+// app.get('/manualWaterStatus', (req, res) => {
+//   fs.readFile(manualWaterOverrideFilePath, 'utf8', (err, data) => {
+//     if (err) {
+//       console.error('Error reading from manualWaterOverride.csv', err);
+//       res.status(200).send('0');
+//     } else {
+//       console.log('Manual water status:', data);
+//       if (data.trim() === 'true') {
+//         res.status(200).send('1');
+//       } else {
+//         res.status(200).send('0');
+//       }
+//     }
+//   });
+// });
+
+
+// app.get('/manualWaterStatus', (req, res) => {
+//   fs.readFile(manualWaterOverrideFilePath, 'utf8', (err, data) => {
+//     if (err) {
+//       console.error('Error reading from manualWaterOverride.csv', err);
+//       res.status(200).send('-1');
+//     } else {
+//       console.log('Manual water status:', data);
+//       if (data.trim() === 'true') {
+//         res.status(200).send('1');
+//       } else {
+//         res.status(200).send('0');
+//       }
+//     }
+//   });
+// });
+
+void cWIFIInterface::read_dropServer()
+{
+    static unsigned long lastUpdate = 0;
+    if (millis() - lastUpdate < 10000) 
+    {
+        return;
+    }
+    lastUpdate = millis();
+
+    WiFiClient client;
+    const char* server = "64.23.202.34";  // Replace with your server's IP address
+    const int port = 3000;  // Replace with your server's port
+
+    bool manualWateringRequest = gWatering;
+
+    Serial.println("read_dropServer...");
+
+    if (client.connect(server, port)) {
+        client.println("GET /manualWaterStatus HTTP/1.1");
+        client.println("Host: " + String(server));
+        client.println("Connection: close");
+        client.println();
+
+        while (client.connected()) {
+            if (client.available()) {
+                String line = client.readStringUntil('\n');
+                if (line == "1") {
+                    manualWateringRequest = true;
+                } else if (line == "0") {
+                    manualWateringRequest = false;
+                }
+                Serial.print("manualWateringRequest: ");
+                Serial.println(line);
+            }
+        }
+        client.stop();
+    } else {
+        Serial.println("connection failed");
+        client.stop();
+    }
+
+    bool autoWateringRequest = gAutoWateringEnabled;
+    if (client.connect(server, port)) {
+        client.println("GET /autoWaterStatus HTTP/1.1");
+        client.println("Host: " + String(server));
+        client.println("Connection: close");
+        client.println();
+
+        while (client.connected()) {
+            if (client.available()) {
+                String line = client.readStringUntil('\n');
+                if (line == "1") {
+                    autoWateringRequest = true;
+                } else if (line == "0") {
+                    autoWateringRequest = false;
+                }
+                Serial.print("autoWateringRequest: ");
+                Serial.println(line);
+            }
+        }
+        client.stop();
+    } else {
+        Serial.println("connection failed");
+        client.stop();
+    }
+
+    setManualWaterStatus(manualWateringRequest);
+    setAutolWaterStatus(autoWateringRequest);
+
+}
 
 void cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t epochTime)
 {
@@ -240,7 +347,6 @@ con
 void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
 {
     static bool startWaterReceived = false;
-    static bool startWaterReceivedLast = false;
     bool capturedTag = false;
     currentLine.clear();
     tag.clear();
@@ -342,18 +448,54 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime
         client.stop();  // Close the connection
         Serial.println("Client disconnected");
 
-        if(startWaterReceived && !startWaterReceivedLast && !gWatering)
-        {
-            //Serial.println("StartWater tag received, starting watering.");
-            gWatering = true;
-            gWateringDuration = 60 * 10; // 10 minutes
-            gWateringTimeStart = logger.getUnixTime();
-        }
-        else if(!startWaterReceived && startWaterReceivedLast)
-        {
-            //Serial.println("StopWater tag received, stopping watering.");
-            gWatering = false;
-        }
-        startWaterReceivedLast = startWaterReceived;
+        // if(startWaterReceived && !startWaterReceivedLast && !gWatering)
+        // {
+        //     //Serial.println("StartWater tag received, starting watering.");
+        //     gWatering = true;
+        //     gWateringDuration = 60 * 10; // 10 minutes
+        //     gWateringTimeStart = logger.getUnixTime();
+        // }
+        // else if(!startWaterReceived && startWaterReceivedLast)
+        // {
+        //     //Serial.println("StopWater tag received, stopping watering.");
+        //     gWatering = false;
+        // }
+        // startWaterReceivedLast = startWaterReceived;
+
+        setManualWaterStatus(startWaterReceived);
     }  
+}
+
+void cWIFIInterface::setManualWaterStatus(bool request)
+{
+    bool startWaterReceived = request;
+    static bool startWaterReceivedLast = false;
+
+    if(startWaterReceived && !startWaterReceivedLast && !gWatering)
+    {
+        gWatering = true;
+        gWateringDuration = 60 * 10; // 10 minutes
+        gWateringTimeStart = logger.getUnixTime();
+    }
+    else if(!startWaterReceived && startWaterReceivedLast)
+    {
+        gWatering = false;
+    }
+    startWaterReceivedLast = startWaterReceived;
+}
+
+void cWIFIInterface::setAutolWaterStatus(bool request)
+{
+    bool startWaterReceived = request;
+    static bool startWaterReceivedLast = false;
+
+    if(startWaterReceived && !startWaterReceivedLast && !gWatering)
+    {
+        gAutoWateringEnabled = true;
+    }
+    else if(!startWaterReceived && startWaterReceivedLast)
+    {
+        gAutoWateringEnabled = false;
+    }
+    startWaterReceivedLast = startWaterReceived;
 }

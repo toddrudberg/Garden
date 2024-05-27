@@ -51,4 +51,5 @@ extern const char* FileName;
 extern unsigned long gWateringTimeStart;
 extern unsigned long gWateringDuration;
 extern bool gWatering;
+extern bool gAutoWateringEnabled;
 #endif// IO.h
