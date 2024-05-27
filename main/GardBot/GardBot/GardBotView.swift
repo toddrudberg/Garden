@@ -180,7 +180,8 @@ struct GardBotView: View
     func sendTag(tag: String) 
     {
         //curl http://localhost:3000/last-row;   
-        let urlString = tag == "Refresh" ? "http://192.168.1.31:3000/last-row" : "http://192.168.1.31:3000/\(tag)"
+        //let urlString = tag == "Refresh" ? "http://192.168.1.31:3000/last-row" : "http://192.168.1.31:3000/\(tag)"
+        let urlString = tag == "Refresh" ? "http://64.23.202.34:3000/last-row" : "http://64.23.202.34:3000/\(tag)"
         guard let url = URL(string: urlString) else
         {
             print("Invalid URL")

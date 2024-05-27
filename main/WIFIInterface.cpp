@@ -208,7 +208,8 @@ void cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
     serializeJson(doc, jsonString);
     Serial.println(jsonString);
     Serial.println(strlen(jsonString));
-    char remoteServer[] = "192.168.1.31"; // address of your server
+    //char remoteServer[] = "192.168.1.31"; // address of your server
+    char remoteServer[] = "64.23.202.34"; // address of your server
     WiFiClient client;
     if (client.connect(remoteServer, 3000)) {
         // send the HTTP POST request:
