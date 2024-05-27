@@ -10,6 +10,7 @@ class cWIFIInterface
 public:
     cWIFIInterface();
     bool setupWIFI();
+    void update_dropServer(sSoilSensorData* soilSensorData, time_t epochTime);
     void checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime);
     void runWIFI(sSoilSensorData* soilSensorData, time_t epochTime);
     bool CheckNtpTime(unsigned long *epoch);

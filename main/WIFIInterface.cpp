@@ -47,6 +47,7 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
                 if( WiFi.status() == WL_CONNECTED )
                 {
                     timeOut = millis();
+                    update_dropServer(soilSensorData, epochTime);
                     checkWIFI(soilSensorData, epochTime);
                     retryCount = 0;
                 }
@@ -129,13 +130,112 @@ bool getTag(const std::string& currentLine, std::string& tag) {
 }
 DynamicJsonDocument doc(512);
 char jsonString[512];
-// char tag[MAX_LINE_LENGTH] = "";
-// char currentLine[MAX_LINE_LENGTH] = "";
-
 std::string tag;
 std::string currentLine;
-
 sTotalState totalState;
+
+void cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t epochTime)
+{
+    static unsigned long lastUpdate = 0;
+    if (millis() - lastUpdate < 10000) 
+    {
+        return;
+    }
+    lastUpdate = millis();
+    totalState.soilSensorData = *soilSensorData;
+    totalState.wateringTimeStart = gWateringTimeStart;
+    totalState.wateringDuration = gWateringDuration;
+    totalState.watering = gWatering;
+    // Create a JSON document
+    
+    // Convert the epoch time to a struct tm
+    struct tm *timeStruct = localtime(&epochTime);
+    // Create a buffer to hold the time string
+    char dateBuffer[11];
+    char timeBuffer[9];
+    // Format the struct tm as a date string
+    strftime(dateBuffer, sizeof(dateBuffer), "%Y-%m-%d", timeStruct);
+
+    // Format the struct tm as a time string
+    strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", timeStruct);
+
+    // snprintf(jsonData, sizeof(jsonData),
+    //     "{"
+    // *    "\"DateStamp\": \"2023-05-25\","
+    // *    "\"TimeStamp\": \"12:34:56\","
+    // *    "\"Epoch\": %lu,"
+    // *    "\"OutsideAirTemp\": 22.5,"
+    // *    "\"OutsideHumidity\": 45.2,"
+    // *    "\"OutsideBaro\": 1013.1,"
+    // *    "\"SoilTemperature\": 20.3,"
+    // *    "\"SoilElectricalConductivity\": 1.2,"
+    // *    "\"SoilHumidity\": 30.1,"
+    // *    "\"SoilPh\": 6.5,"
+    // *    "\"Watering\": true,"
+    // *    "\"TimeRemaining\": 120,"
+    // *    "\"WifiError\": false,"
+    // *    "\"SDError\": false,"
+    // *    "\"RTCFailed\": false"
+    //     "}", epoch);
+
+    // Add the time string to the JSON document
+    doc["DateStamp"] = dateBuffer;
+    doc["TimeStamp"] = timeBuffer;
+    doc["Epoch"] = epochTime;
+    doc["OutsideAirTemp"].set(round(totalState.soilSensorData.outsideAirTemp * 10.0) / 10.0);
+    doc["OutsideHumidity"].set(round(totalState.soilSensorData.outsideAirHumidity * 10.0) / 10.0);
+    doc["OutsideBaro"].set(round(totalState.soilSensorData.baroPressure * 100.0) / 100.0);
+    doc["SoilTemperature"].set(round(totalState.soilSensorData.soilTemperature * 10.0) / 10.0);
+    doc["SoilElectricalConductivity"].set(round(totalState.soilSensorData.soilElectricalConductivity * 10.0) / 10.0);
+    doc["SoilHumidity"].set(round(totalState.soilSensorData.soilMoisture * 10.0) / 10.0);
+    doc["SoilPh"].set(round(totalState.soilSensorData.soilPh * 10.0) / 10.0);
+    doc["Watering"] = totalState.watering;
+    float wateringTimeRemaining = (totalState.wateringDuration - (logger.getUnixTime() - totalState.wateringTimeStart)) / 60.0;
+    if (wateringTimeRemaining < 0 || wateringTimeRemaining > 100000) {
+        wateringTimeRemaining = 0;
+    }
+    doc["TimeRemaining"] = wateringTimeRemaining;
+    doc["WifiError"] = wifiConnectionFailed;
+    doc["SDError"] = !SD.exists(FileName);
+    doc["RTCFailed"] = rtcFailed;
+
+    if (WiFi.status() != WL_CONNECTED) 
+    {
+        Serial.println("update_dropServer: WiFi not connected. Attempting to reconnect...");
+
+    }
+
+    serializeJson(doc, jsonString);
+    Serial.println(jsonString);
+    Serial.println(strlen(jsonString));
+    char remoteServer[] = "192.168.1.31"; // address of your server
+    WiFiClient client;
+    if (client.connect(remoteServer, 3000)) {
+        // send the HTTP POST request:
+        client.println("POST /log HTTP/1.1");
+        client.println("Host: " + String(remoteServer));
+        client.println("Content-Type: application/json");
+        client.println("Connection: close");
+        // calculate the length of the JSON data
+        client.print("Content-Length: ");
+        client.println(strlen(jsonString));
+        client.println();
+        // send the JSON data:
+        client.println(jsonString);
+        Serial.println("Data Sent");
+        client.stop();  // Ensure the client is stopped
+    } 
+    else {
+        // if you couldn't make a connection:
+        Serial.println("connection failed");
+        client.stop();  // Ensure the client is stopped
+    }
+}
+/*
+{"DateStamp":"2024-05-26","TimeStamp":"15:07:17","Epoch":1716736037,"OutsideAirTemp":72.9,"OutsideHumidity":46.1,"OutsideBaro":28.6,"SoilTemperature":67.8,"SoilElectricalConductivity":183,"SoilHumidity":28.5,"SoilPh":8.3,"Watering":false,"TimeRemaining":0,"WifiError":false,"SDError":false,"RTCFailed":false}
+308
+con
+*/
 void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
 {
     static bool startWaterReceived = false;
@@ -143,8 +243,8 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime
     bool capturedTag = false;
     currentLine.clear();
     tag.clear();
-
-    WiFiClient client = server.available();  // Check for incoming client requests
+    WiFiClient client;
+    client = server.available();  // Check for incoming client requests
     if (client) {  // If a client has connected
         //Serial.println("New client connected");
 
@@ -215,7 +315,7 @@ void cWIFIInterface::checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime
             doc["Date"] = dateBuffer;
             doc["OAT"].set(round(totalState.soilSensorData.outsideAirTemp * 10.0) / 10.0);
             doc["OAH"].set(round(totalState.soilSensorData.outsideAirHumidity * 10.0) / 10.0);
-            doc["BP"].set(round(totalState.soilSensorData.baroPressure * 10.0) / 10.0);
+            doc["BP"].set(round(totalState.soilSensorData.baroPressure * 100.0) / 100.0);
             doc["SM"].set(round(totalState.soilSensorData.soilMoisture * 10.0) / 10.0);
             doc["ST"].set(round(totalState.soilSensorData.soilTemperature * 10.0) / 10.0);
             doc["SEC"].set(round(totalState.soilSensorData.soilElectricalConductivity * 10.0) / 10.0);

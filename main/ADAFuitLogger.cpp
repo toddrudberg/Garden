@@ -5,6 +5,41 @@ RTC_PCF8523 rtc;
 
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
+void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData)
+{
+    static int step = 0;
+    const int timeDelay = 10000;
+    static unsigned long startTime = millis() + timeDelay;
+    switch(step)
+    {
+        case 0:
+        {
+            if(((millis() - startTime) > timeDelay) && setupLogger())
+            {
+                step++;
+                startTime = millis();
+            }
+            break;
+        }
+        case 1:
+        {
+            if( millis() - startTime > timeDelay)
+            {
+                startTime = millis();
+                soilSensorData->dateStamp = getExcelFormattedDate();
+                soilSensorData->timeStamp = getExcelFormattedTime();
+                if( !writeData(soilSensorData))
+                {
+                    step = 0;
+                    Serial.println("Error writing data to SD card.");
+                }
+                startTime = millis();
+            }
+            break;
+        }
+    }
+}
+
 bool cAdafruitLogger::setupRTC()
 {
 
@@ -90,40 +125,6 @@ char* cAdafruitLogger::getExcelFormattedTime() {
   return timeString;
 }
 
-void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData)
-{
-    static int step = 0;
-    const int timeDelay = 5000;
-    static unsigned long startTime = millis() + timeDelay;
-    switch(step)
-    {
-        case 0:
-        {
-            if(((millis() - startTime) > timeDelay) && setupLogger())
-            {
-                step++;
-                startTime = millis();
-            }
-            break;
-        }
-        case 1:
-        {
-            if( millis() - startTime > timeDelay)
-            {
-                startTime = millis();
-                soilSensorData->dateStamp = getExcelFormattedDate();
-                soilSensorData->timeStamp = getExcelFormattedTime();
-                if( !writeData(soilSensorData))
-                {
-                    step = 0;
-                    Serial.println("Error writing data to SD card.");
-                }
-                startTime = millis();
-            }
-            break;
-        }
-    }
-}
 
 bool cAdafruitLogger::setupLogger()
 {
@@ -186,8 +187,8 @@ bool cAdafruitLogger::writeData(sSoilSensorData* soilSensorData)
     dataFile.print(", ");
     dataFile.println(rtcFailed);
     dataFile.close();
-    Serial.print("Temperature data written to ");
-    Serial.println(FileName);
+    // Serial.print("Temperature data written to ");
+    // Serial.println(FileName);
     return true;
   } 
   else 

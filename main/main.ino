@@ -87,6 +87,7 @@ void setup()
 
 bool firstPass = true;
 unsigned long epochTime = 0;
+
 void loop()
 {
     unsigned long epoch = 0;
@@ -113,6 +114,7 @@ void loop()
     soilSensor.runSoilSensor(&soilSensorData);
 
     time_t myTime = static_cast<time_t>(epochTime);
+
     wifiInterface.runWIFI(&soilSensorData, myTime);
 
     logger.RunLogger(&soilSensorData);

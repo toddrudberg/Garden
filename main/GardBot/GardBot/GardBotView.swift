@@ -30,7 +30,7 @@ struct ServerResponse: Codable
         case wateringTimeRemaining = "WATERINGTIMEREMAINING"
     }
 }
-
+//{"Time":"12:34:56","Date":"2023-05-25","OAT":22.5,"OAH":45.2,"BP":1013.1,"SM":20.3,"ST":1.2,"SEC":30.1,"SPH":6.5,"WATERING":true,"WATERINGTIMEREMAINING":120}
 struct GardBotView: View 
 {
     @State private var serverResponse: ServerResponse?
@@ -103,7 +103,7 @@ struct GardBotView: View
                     HStack {
                         Text("Soil Temp: ")
                             .font(.system(size: CGFloat(fontSize1)))
-                        Text(String(format: "%.0f", response.st))
+                        Text(String(format: "%.1f", response.st))
                             .font(.system(size: CGFloat(fontSize1)))
                     }
                     // Display the SPH "soil pH" value
@@ -179,7 +179,9 @@ struct GardBotView: View
 
     func sendTag(tag: String) 
     {
-        guard let url = URL(string: "http://192.168.1.9/\(tag)") else
+        //curl http://localhost:3000/last-row;   
+        let urlString = tag == "Refresh" ? "http://192.168.1.31:3000/last-row" : "http://192.168.1.31:3000/\(tag)"
+        guard let url = URL(string: urlString) else
         {
             print("Invalid URL")
             return
@@ -200,7 +202,9 @@ struct GardBotView: View
                     {
                         let response = try decoder.decode(ServerResponse.self, from: data)
                         print("Server Response: \(response)")
-                        serverResponse = response
+                        DispatchQueue.main.async {
+                            self.serverResponse = response
+                        }
                     }
                     catch
                     {
