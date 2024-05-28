@@ -88,20 +88,20 @@ bool cWIFIInterface::manageDropServer(sSoilSensorData* soilSensorData, time_t ep
     static unsigned long lastUpdate = 0;
     static int state = 0;
     bool serverConnection = true;
-
-    if (millis() - lastUpdate > 2500) 
+    bool manualWateringRequest = gManualWateringOn;
+    bool autoWateringRequest = gAutoWateringEnabled;
+    if (millis() - lastUpdate > 5000) 
     {
         switch (state) 
         {
             case 0:
-                serverConnection = read_dropServer(1);
+
+                serverConnection = read_dropServer(&autoWateringRequest, &manualWateringRequest);
+                setAutolWaterStatus(autoWateringRequest);
+                setManualWaterStatus(manualWateringRequest);
                 state++; 
                 break;
             case 1:
-                serverConnection = read_dropServer(2);
-                state++;
-                break;
-            case 2:
                 serverConnection = update_dropServer(soilSensorData, epochTime);
                 state = 0;
                 break;
@@ -264,6 +264,54 @@ bool cWIFIInterface::read_dropServer(int requestType)
             Serial.println("connection failed in read_dropServer");
             client.stop();
         }
+    }
+    return connectionSolid;
+}
+
+bool cWIFIInterface::read_dropServer(bool* autoWateringRequest, bool* manualWaterOverrideRequest)
+{
+    bool connectionSolid = true;
+    WiFiClient client;
+
+    if (client.connect(remoteServer, remoteServerPort)) 
+    {
+        client.println("GET /status HTTP/1.1"); // client.println("GET /autoWaterStatus HTTP/1.1");
+        client.println("Host: " + String(remoteServer));
+        client.println("Connection: close");
+        client.println();
+        unsigned long startTimems = millis();
+        while (client.connected() && millis() - startTimems < 5000)
+        {
+            if (client.available()) {
+                String line = client.readStringUntil('\n');
+                if (line.startsWith("{\"manualWaterOverride\":")) 
+                {
+                    int manualWaterOverrideStart = line.indexOf(":") + 1;
+                    int manualWaterOverrideEnd = line.indexOf(",");
+                    String manualWaterOverride = line.substring(manualWaterOverrideStart, manualWaterOverrideEnd);
+                    manualWaterOverride.trim();
+                    int autoWaterStatusStart = line.lastIndexOf(":") + 1;
+                    int autoWaterStatusEnd = line.lastIndexOf("}");
+                    String autoWaterStatus = line.substring(autoWaterStatusStart, autoWaterStatusEnd);
+                    autoWaterStatus.trim();
+
+                    *autoWateringRequest = (autoWaterStatus == "true");
+                    *manualWaterOverrideRequest = (manualWaterOverride == "true");
+                    break;
+                }
+            }
+        }
+        Serial.print("autoWateringRequest: ");
+        Serial.println(*autoWateringRequest);
+        Serial.print("manualWaterOverrideRequest: ");
+        Serial.println(*manualWaterOverrideRequest);
+        client.stop();
+    } 
+    else 
+    {
+        Serial.println("connection failed in read_dropServer");
+        client.stop();
+        connectionSolid = false;
     }
     return connectionSolid;
 }

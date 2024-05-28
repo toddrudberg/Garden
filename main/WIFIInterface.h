@@ -20,6 +20,7 @@ private:
     void setManualWaterStatus(bool request);
     void setAutolWaterStatus(bool request);
     bool manageDropServer(sSoilSensorData* soilSensorData, time_t epochTime);
+    bool read_dropServer(bool* autoWateringRequest, bool* manualWaterOverrideRequest);
 
     WiFiUDP ntpUDP;
     NTPClient timeClient;
