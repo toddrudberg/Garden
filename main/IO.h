@@ -7,6 +7,8 @@
 
 extern SoftwareSerial mySerial;
 
+extern const char remoteServer[];
+extern const int remoteServerPort;
 
 extern const int rs485Rx;
 extern const int rs485Tx;
@@ -41,6 +43,7 @@ struct sTotalState
   unsigned long wateringTimeStart;
   unsigned long wateringDuration;
   bool watering;
+  bool autoWaterCycleActive;
 };
 
 #include "ADAFruitLogger.h"
@@ -50,6 +53,8 @@ extern const char* FileName;
 // extern char gTimeString[10];
 extern unsigned long gWateringTimeStart;
 extern unsigned long gWateringDuration;
-extern bool gWatering;
+extern bool gManualWateringOn;
 extern bool gAutoWateringEnabled;
+extern bool gAutoWateringCycleOn;
+extern unsigned long gremoteServerFails;
 #endif// IO.h

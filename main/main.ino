@@ -44,9 +44,9 @@ void setup()
   pinMode(Valve2, OUTPUT);
   pinMode(Valve3, OUTPUT);
   pinMode(sdChipSelect, OUTPUT);
-  digitalWrite(Valve1, HIGH);
+  //digitalWrite(Valve1, HIGH);
   delay(1000);
-  digitalWrite(Valve1, LOW);
+  //digitalWrite(Valve1, LOW);
   delay(500);
   if (EEPROM.read(RESET_FLAG_ADDRESS) == 0) // Check if the reset flag is 0 (i.e., the software reset hasn't been performed yet)
   {
@@ -60,7 +60,7 @@ void setup()
     Serial.println("Reset already performed");
     EEPROM.write(RESET_FLAG_ADDRESS, 0);
   }
-  digitalWrite(Valve1, HIGH);
+  //digitalWrite(Valve1, HIGH);
   delay(1000);
   digitalWrite(Valve1, LOW);
 
@@ -79,9 +79,6 @@ void setup()
     Serial.println("RTC setup failed.");
     softwareReset();
   }
-
-
-
 
 }
 
@@ -124,26 +121,7 @@ void loop()
     softwareReset();
   }
 
-
-
-  if( gWatering )
-  {
-    digitalWrite(Valve1, HIGH);
-    digitalWrite(Valve2, HIGH);
-    digitalWrite(Valve3, HIGH);
-    if( logger.getUnixTime() - gWateringTimeStart > gWateringDuration)
-    {
-      gWatering = false;
-    }
-  }
-  else
-  {
-    digitalWrite(Valve1, LOW);
-    digitalWrite(Valve2, LOW);
-    digitalWrite(Valve3, LOW);
-    gWateringTimeStart = logger.getUnixTime() - gWateringDuration;
-  }
-
+  manageWateringValves(myTime, &soilSensorData);
   //printValues();
 
   //checkHeap();
@@ -155,6 +133,90 @@ void loop()
   // }
 
   firstPass = false;
+}
+
+void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
+{
+  static bool autoCycleActive = false;
+  static time_t autoCycleStartTime = 0;
+
+  static time_t displayData = myTime;
+
+  struct tm *myTimeStruct = localtime(&myTime);
+  bool startCycle1 = myTimeStruct->tm_hour == 6 && (myTimeStruct->tm_min >= 0 && myTimeStruct->tm_min < 1);
+  bool startCycle2 = myTimeStruct->tm_hour == 7 && (myTimeStruct->tm_min >= 0 && myTimeStruct->tm_min < 1);
+
+
+  bool needsWater = soilSensorData->soilMoisture < 20;
+
+  if( difftime(myTime, displayData) > 10)
+  {
+    Serial.println();
+    
+    Serial.print("startCycle1: ");
+    Serial.println(startCycle1);
+    
+    Serial.print("startCycle2: ");
+    Serial.println(startCycle2);
+    
+    Serial.print("needsWater: ");
+    Serial.println(needsWater);
+    
+    Serial.print("autoCycleActive: ");
+    Serial.println(autoCycleActive);
+    
+    Serial.print("soilMoisture: ");
+    Serial.println(soilSensorData->soilMoisture);
+
+    Serial.print("autoCycleStartTime: ");
+
+    struct tm *autoCycleStruct = localtime(&autoCycleStartTime);
+    char timeStr[9]; // Buffer to hold the time string
+    Serial.print("AutoCycle Start Time: ");
+    sprintf(timeStr, "%02d:%02d:%02d", autoCycleStruct->tm_hour, autoCycleStruct->tm_min, autoCycleStruct->tm_sec);
+    Serial.println(timeStr);
+    
+    tm *myTimeStruct = localtime(&myTime);
+    Serial.print("Time: ");
+    timeStr[9]; // Buffer to hold the time string
+    sprintf(timeStr, "%02d:%02d:%02d", myTimeStruct->tm_hour, myTimeStruct->tm_min, myTimeStruct->tm_sec);
+    Serial.println(timeStr);
+    Serial.println();
+
+    displayData = myTime;
+  }
+
+  if( (startCycle1 && !autoCycleActive) || (startCycle2 && !autoCycleActive) )
+  {
+    autoCycleActive = needsWater && gAutoWateringEnabled;
+    autoCycleStartTime = myTime;
+  }
+  else if( difftime(myTime, autoCycleStartTime) > 60 * 10 )
+  {
+    autoCycleActive = false;
+  }
+
+  //indicate to the global state that the auto watering cycle is active
+  gAutoWateringCycleOn = autoCycleActive;
+
+  if( gManualWateringOn || autoCycleActive )
+  {
+    digitalWrite(Valve1, HIGH);
+    digitalWrite(Valve2, LOW);
+    digitalWrite(Valve3, LOW);
+    if( logger.getUnixTime() - gWateringTimeStart > gWateringDuration)
+    {
+      gManualWateringOn = false;
+    }
+  }
+  else
+  {
+    digitalWrite(Valve1, LOW);
+    digitalWrite(Valve2, LOW);
+    digitalWrite(Valve3, LOW);
+    gWateringTimeStart = logger.getUnixTime() - gWateringDuration;
+  }
+
 }
 
 void printValues() {

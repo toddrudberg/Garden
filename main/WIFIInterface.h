@@ -13,13 +13,13 @@ public:
     void runWIFI(sSoilSensorData* soilSensorData, time_t epochTime);
 
 private:
-    void update_dropServer(sSoilSensorData* soilSensorData, time_t epochTime);
-    void read_dropServer();
+    bool update_dropServer(sSoilSensorData* soilSensorData, time_t epochTime);
+    bool read_dropServer(int requestType);
     void checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime);
     bool setupWIFI();
     void setManualWaterStatus(bool request);
     void setAutolWaterStatus(bool request);
-
+    bool manageDropServer(sSoilSensorData* soilSensorData, time_t epochTime);
 
     WiFiUDP ntpUDP;
     NTPClient timeClient;

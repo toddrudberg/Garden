@@ -147,7 +147,7 @@ bool cAdafruitLogger::writeData(sSoilSensorData* soilSensorData)
     if (dataFile) 
     {
       //DateStamp, TimeStamp, Epoch, OutsideAirTemp, OutsideHumidity, OutsideBaro, SoilTemperature, SoilElectricalConductivity, SoilHumidity, SoilPh, Watering, WifiError, SDError, RTCFailed
-      dataFile.println("DateStamp, TimeStamp, Epoch, OutsideAirTemp, OutsideHumidity, OutsideBaro, SoilTemperature, SoilElectricalConductivity, SoilHumidity, SoilPh, Watering, WifiError, SDError, RTCFailed");
+      dataFile.println("DateStamp, TimeStamp, Epoch, OutsideAirTemp, OutsideHumidity, OutsideBaro, SoilTemperature, SoilElectricalConductivity, SoilHumidity, SoilPh, Watering, AutoWaterEnabled, AutoWaterCycleOn, WifiError, SDError, RTCFailed, remoteServerFails");
       dataFile.close();
     } 
     else 
@@ -177,15 +177,21 @@ bool cAdafruitLogger::writeData(sSoilSensorData* soilSensorData)
     dataFile.print(", ");
     dataFile.print(soilSensorData->soilMoisture);
     dataFile.print(", ");
-    dataFile.println(soilSensorData->soilPh);
+    dataFile.print(soilSensorData->soilPh);
     dataFile.print(", ");
-    dataFile.print(gWatering);
+    dataFile.print(gManualWateringOn);
+    dataFile.print(", ");
+    dataFile.print(gAutoWateringEnabled);
+    dataFile.print(", ");
+    dataFile.print(gAutoWateringCycleOn);
     dataFile.print(", ");
     dataFile.print(wifiConnectionFailed);
     dataFile.print(", ");
     dataFile.print(SD.exists(FileName));
     dataFile.print(", ");
-    dataFile.println(rtcFailed);
+    dataFile.print(rtcFailed);
+    dataFile.print(", ");
+    dataFile.println(gremoteServerFails);
     dataFile.close();
     // Serial.print("Temperature data written to ");
     // Serial.println(FileName);
