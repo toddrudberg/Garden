@@ -7,6 +7,8 @@
 
 extern SoftwareSerial mySerial;
 
+extern const char remoteServer[];
+extern const int remoteServerPort;
 
 extern const int rs485Rx;
 extern const int rs485Tx;
@@ -23,8 +25,9 @@ extern bool wifiConnectionFailed;
 
 struct sSoilSensorData
 {
-    char* dateStamp;
+  char* dateStamp;
   char* timeStamp;
+  unsigned long epochTime;
   float outsideAirTemp;
   float outsideAirHumidity;
   float baroPressure;
@@ -40,14 +43,18 @@ struct sTotalState
   unsigned long wateringTimeStart;
   unsigned long wateringDuration;
   bool watering;
+  bool autoWaterCycleActive;
 };
 
 #include "ADAFruitLogger.h"
 extern cAdafruitLogger logger;
 
 extern const char* FileName;
-extern char gTimeString[10];
+// extern char gTimeString[10];
 extern unsigned long gWateringTimeStart;
 extern unsigned long gWateringDuration;
-extern bool gWatering;
+extern bool gManualWateringOn;
+extern bool gAutoWateringEnabled;
+extern bool gAutoWateringCycleOn;
+extern unsigned long gremoteServerFails;
 #endif// IO.h

@@ -5,6 +5,41 @@ RTC_PCF8523 rtc;
 
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
+void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData)
+{
+    static int step = 0;
+    const int timeDelay = 10000;
+    static unsigned long startTime = millis() + timeDelay;
+    switch(step)
+    {
+        case 0:
+        {
+            if(((millis() - startTime) > timeDelay) && setupLogger())
+            {
+                step++;
+                startTime = millis();
+            }
+            break;
+        }
+        case 1:
+        {
+            if( millis() - startTime > timeDelay)
+            {
+                startTime = millis();
+                soilSensorData->dateStamp = getExcelFormattedDate();
+                soilSensorData->timeStamp = getExcelFormattedTime();
+                if( !writeData(soilSensorData))
+                {
+                    step = 0;
+                    Serial.println("Error writing data to SD card.");
+                }
+                startTime = millis();
+            }
+            break;
+        }
+    }
+}
+
 bool cAdafruitLogger::setupRTC()
 {
 
@@ -90,40 +125,6 @@ char* cAdafruitLogger::getExcelFormattedTime() {
   return timeString;
 }
 
-void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData)
-{
-    static int step = 0;
-    const int timeDelay = 5000;
-    static unsigned long startTime = millis() + timeDelay;
-    switch(step)
-    {
-        case 0:
-        {
-            if(((millis() - startTime) > timeDelay) && setupLogger())
-            {
-                step++;
-                startTime = millis();
-            }
-            break;
-        }
-        case 1:
-        {
-            if( millis() - startTime > timeDelay)
-            {
-                startTime = millis();
-                soilSensorData->dateStamp = getExcelFormattedDate();
-                soilSensorData->timeStamp = getExcelFormattedTime();
-                if( !writeData(soilSensorData))
-                {
-                    step = 0;
-                    Serial.println("Error writing data to SD card.");
-                }
-                startTime = millis();
-            }
-            break;
-        }
-    }
-}
 
 bool cAdafruitLogger::setupLogger()
 {
@@ -145,7 +146,8 @@ bool cAdafruitLogger::writeData(sSoilSensorData* soilSensorData)
     File dataFile = SD.open(FileName, FILE_WRITE);
     if (dataFile) 
     {
-      dataFile.println("DateStamp, TimeStamp, OutsideAirTemp, OutsideHumidity, SoilTemperature, SoilElectricalConductivity, SoilHumidity, SoilPh");
+      //DateStamp, TimeStamp, Epoch, OutsideAirTemp, OutsideHumidity, OutsideBaro, SoilTemperature, SoilElectricalConductivity, SoilHumidity, SoilPh, Watering, WifiError, SDError, RTCFailed
+      dataFile.println("DateStamp, TimeStamp, Epoch, OutsideAirTemp, OutsideHumidity, OutsideBaro, SoilTemperature, SoilElectricalConductivity, SoilHumidity, SoilPh, Watering, AutoWaterEnabled, AutoWaterCycleOn, WifiError, SDError, RTCFailed, remoteServerFails");
       dataFile.close();
     } 
     else 
@@ -161,9 +163,13 @@ bool cAdafruitLogger::writeData(sSoilSensorData* soilSensorData)
     dataFile.print(", ");
     dataFile.print(soilSensorData->timeStamp);
     dataFile.print(", ");
+    dataFile.print(soilSensorData->epochTime);
+    dataFile.print(", ");
     dataFile.print(soilSensorData->outsideAirTemp);
     dataFile.print(", ");
     dataFile.print(soilSensorData->outsideAirHumidity);
+    dataFile.print(", ");
+    dataFile.print(soilSensorData->baroPressure);
     dataFile.print(", ");
     dataFile.print(soilSensorData->soilTemperature);
     dataFile.print(", ");
@@ -171,10 +177,24 @@ bool cAdafruitLogger::writeData(sSoilSensorData* soilSensorData)
     dataFile.print(", ");
     dataFile.print(soilSensorData->soilMoisture);
     dataFile.print(", ");
-    dataFile.println(soilSensorData->soilPh);
+    dataFile.print(soilSensorData->soilPh);
+    dataFile.print(", ");
+    dataFile.print(gManualWateringOn);
+    dataFile.print(", ");
+    dataFile.print(gAutoWateringEnabled);
+    dataFile.print(", ");
+    dataFile.print(gAutoWateringCycleOn);
+    dataFile.print(", ");
+    dataFile.print(wifiConnectionFailed);
+    dataFile.print(", ");
+    dataFile.print(SD.exists(FileName));
+    dataFile.print(", ");
+    dataFile.print(rtcFailed);
+    dataFile.print(", ");
+    dataFile.println(gremoteServerFails);
     dataFile.close();
-    Serial.print("Temperature data written to ");
-    Serial.println(FileName);
+    // Serial.print("Temperature data written to ");
+    // Serial.println(FileName);
     return true;
   } 
   else 
