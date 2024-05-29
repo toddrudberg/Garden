@@ -54,7 +54,7 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
                     serverConnection = manageDropServer(soilSensorData, epochTime);
                     //checkWIFI(soilSensorData, epochTime);
 
-                    if( printToScreen++ > 10)
+                    if( printToScreen++ > 1000)
                     {
                       Serial.print("serverConnection: ");
                       Serial.print(serverConnection);
@@ -90,7 +90,7 @@ bool cWIFIInterface::manageDropServer(sSoilSensorData* soilSensorData, time_t ep
     bool serverConnection = true;
     bool manualWateringRequest = gManualWateringOn;
     bool autoWateringRequest = gAutoWateringEnabled;
-    if (millis() - lastUpdate > 5000) 
+    if (millis() - lastUpdate > 10000) 
     {
         switch (state) 
         {
