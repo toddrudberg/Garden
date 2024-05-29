@@ -20,11 +20,15 @@ private:
     void setManualWaterStatus(bool request);
     void setAutolWaterStatus(bool request);
     bool manageDropServer(sSoilSensorData* soilSensorData, time_t epochTime);
+    bool read_dropServer(bool* autoWateringRequest, bool* manualWaterOverrideRequest, bool* aRefreshRequest);
 
     WiFiUDP ntpUDP;
     NTPClient timeClient;
     const char* ssid = "Turkey Point";
     const char* password = "gobblegobble";
+    //char remoteServer[] = "192.168.1.31"; // address of your server
+    const char* remoteServer = "64.23.202.34"; // address of your server
+    const int remoteServerPort = 3000; // port of your server
     WiFiServer server;
 };
 

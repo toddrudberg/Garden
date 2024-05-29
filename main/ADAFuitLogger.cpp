@@ -9,6 +9,7 @@ void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData)
 {
     static int step = 0;
     const int timeDelay = 10000;
+    const int loggingInterval = 60000;
     static unsigned long startTime = millis() + timeDelay;
     switch(step)
     {
@@ -23,7 +24,7 @@ void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData)
         }
         case 1:
         {
-            if( millis() - startTime > timeDelay)
+            if( millis() - startTime > loggingInterval)
             {
                 startTime = millis();
                 soilSensorData->dateStamp = getExcelFormattedDate();
