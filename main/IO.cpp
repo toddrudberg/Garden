@@ -1,8 +1,6 @@
 #include "IO.h"
 
-//char remoteServer[] = "192.168.1.31"; // address of your server
-const char remoteServer[] = "64.23.202.34"; // address of your server
-const int remoteServerPort = 3000; // port of your server
+
 
 const int rs485rX = 0;  //Definition RS485 shield RX terminal
 const int rs485tX = 1;  //Definition RS485 shield TX terminal

@@ -149,7 +149,7 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
 
   bool needsWater = soilSensorData->soilMoisture < 20;
 
-  if( difftime(myTime, displayData) > 10)
+  if( difftime(myTime, displayData) > 60)
   {
     Serial.println();
     

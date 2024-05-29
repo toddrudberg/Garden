@@ -54,7 +54,7 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
                     serverConnection = manageDropServer(soilSensorData, epochTime);
                     //checkWIFI(soilSensorData, epochTime);
 
-                    if( printToScreen++ > 10)
+                    if( printToScreen++ > 1000)
                     {
                       Serial.print("serverConnection: ");
                       Serial.print(serverConnection);
@@ -86,23 +86,41 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
 bool cWIFIInterface::manageDropServer(sSoilSensorData* soilSensorData, time_t epochTime)
 {
     static unsigned long lastUpdate = 0;
+    static unsigned long lastLogtime = 0;
     static int state = 0;
     bool serverConnection = true;
     bool manualWateringRequest = gManualWateringOn;
     bool autoWateringRequest = gAutoWateringEnabled;
-    if (millis() - lastUpdate > 5000) 
+
+    static bool refreshRequestLast = false;
+    static bool refreshRequest = false;
+    static bool autoWateringRequestlast = false;
+    static bool manualWateringRequestlast = false;
+
+    bool updatetheServer = false;
+    if (millis() - lastUpdate > 10000) 
     {
         switch (state) 
         {
             case 0:
-
-                serverConnection = read_dropServer(&autoWateringRequest, &manualWateringRequest);
+                serverConnection = read_dropServer(&autoWateringRequest, &manualWateringRequest, &refreshRequest);
                 setAutolWaterStatus(autoWateringRequest);
                 setManualWaterStatus(manualWateringRequest);
+                updatetheServer  =  autoWateringRequest != autoWateringRequestlast || 
+                                    manualWateringRequest != manualWateringRequestlast|| 
+                                    refreshRequest != refreshRequestLast;
+                if(millis() - lastLogtime > 60000 || updatetheServer)
+                {
+                    autoWateringRequestlast = autoWateringRequest;
+                    manualWateringRequestlast = manualWateringRequest;
+                    refreshRequestLast = refreshRequest;
+                    state++;
+                }
                 state++; 
                 break;
             case 1:
                 serverConnection = update_dropServer(soilSensorData, epochTime);
+                lastLogtime = millis();
                 state = 0;
                 break;
         }
@@ -268,7 +286,7 @@ bool cWIFIInterface::read_dropServer(int requestType)
     return connectionSolid;
 }
 
-bool cWIFIInterface::read_dropServer(bool* autoWateringRequest, bool* manualWaterOverrideRequest)
+bool cWIFIInterface::read_dropServer(bool* autoWateringRequest, bool* manualWaterOverrideRequest, bool *aRefreshRequest)
 {
     bool connectionSolid = true;
     WiFiClient client;
@@ -295,8 +313,14 @@ bool cWIFIInterface::read_dropServer(bool* autoWateringRequest, bool* manualWate
                     String autoWaterStatus = line.substring(autoWaterStatusStart, autoWaterStatusEnd);
                     autoWaterStatus.trim();
 
+                    int gRefreshRequestStart = line.lastIndexOf(":") + 1;
+                    int gRefreshRequestEnd = line.lastIndexOf("}");
+                    String refreshRequest = line.substring(gRefreshRequestStart, gRefreshRequestEnd);
+                    refreshRequest.trim();
+
                     *autoWateringRequest = (autoWaterStatus == "true");
                     *manualWaterOverrideRequest = (manualWaterOverride == "true");
+                    *aRefreshRequest = (refreshRequest == "true");
                     break;
                 }
             }
@@ -305,6 +329,8 @@ bool cWIFIInterface::read_dropServer(bool* autoWateringRequest, bool* manualWate
         Serial.println(*autoWateringRequest);
         Serial.print("manualWaterOverrideRequest: ");
         Serial.println(*manualWaterOverrideRequest);
+        Serial.print("refreshRequest: ");
+        Serial.println(*aRefreshRequest);
         client.stop();
     } 
     else 
