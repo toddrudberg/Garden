@@ -6,6 +6,7 @@
 #include <malloc.h>
 #include <EEPROM.h>
 
+
 #define RESET_FLAG_ADDRESS 0 // EEPROM address to store the reset flag
 
 #define SEALEVELPRESSURE_HPA (1013.25)
@@ -104,6 +105,11 @@ void loop()
     {
       epochTime = logger.getUnixTime();
     }
+    
+    // If millis() is going to rollover in the next 24 hours
+    if (millis() > ULONG_MAX - 86400000) {
+        softwareReset();
+    }    
     
     soilSensorData.epochTime = epochTime;
     bme280.runBME(&soilSensorData);

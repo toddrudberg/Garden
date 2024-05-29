@@ -3,6 +3,7 @@
 #define IO_H
 #include <ArduinoJson.h>
 #include <SoftwareSerial.h>
+#include <limits.h>
 
 
 extern SoftwareSerial mySerial;
