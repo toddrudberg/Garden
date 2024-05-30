@@ -4,7 +4,7 @@
 #include <ArduinoJson.h>
 #include <SoftwareSerial.h>
 #include <limits.h>
-
+#include <EEPROM.h>
 
 extern SoftwareSerial mySerial;
 

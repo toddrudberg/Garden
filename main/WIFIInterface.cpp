@@ -64,12 +64,13 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
                     gremoteServerFails++;
                 }
 
-                if (gremoteServerFails > maxServerFails)
+                if (gremoteServerFails > maxServerFails && !gAutoWateringCycleOn)
                 {
                     Serial.println("Too many server fails, resetting WiFi...");
                     WiFi.disconnect();
                     gremoteServerFails = 0;
                     state = 0; // Go back to state 0 to reconnect
+                    NVIC_SystemReset();
                 }
             } 
             else 
@@ -89,7 +90,7 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
 bool cWIFIInterface::manageDropServer(sSoilSensorData* soilSensorData, time_t epochTime)
 {
     const unsigned long serverRest = 10000; //general rest time between server requests
-    const unsigned long serverUpdateLogDelay = 2000; //if a state change, we wait this long before sending the update.  must be smaller than serverRest
+    const unsigned long serverUpdateLogDelay = 5000; //if a state change, we wait this long before sending the update.  must be smaller than serverRest
     const unsigned long serverUpdateLogInterval = 60000; //generally, we log every 60 seconds
     static unsigned long lastServerRequestTime = 0;
     static unsigned long lastLogtime = 0;

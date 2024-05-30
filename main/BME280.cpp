@@ -71,8 +71,8 @@ bool cBME280::startBME() {
         Serial.print("   ID of 0x56-0x58 represents a BMP 280,\n");
         Serial.print("        ID of 0x60 represents a BME 280.\n");
         Serial.print("        ID of 0x61 represents a BME 680.\n");
-        while (1) delay(10);
     }
+    return status;
 }
 
 sBME280Data cBME280::readBME() 

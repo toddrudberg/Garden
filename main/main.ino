@@ -4,7 +4,7 @@
 #include "ADAFruitLogger.h"
 #include "BME280.h"
 #include <malloc.h>
-#include <EEPROM.h>
+
 
 
 #define RESET_FLAG_ADDRESS 0 // EEPROM address to store the reset flag
@@ -196,9 +196,9 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
   if( (startCycle1 && !autoCycleActive) || (startCycle2 && !autoCycleActive) )
   {
     autoCycleActive = needsWater && gAutoWateringEnabled;
-    autoCycleStartTime = myTime;
+    autoCycleStartTime = millis() / 1000;
   }
-  else if( difftime(myTime, autoCycleStartTime) > 60 * 10 )
+  else if( (millis() / 1000 - autoCycleStartTime) > 60 * 10 )
   {
     autoCycleActive = false;
   }

@@ -17,7 +17,8 @@ void cSoilSensor::runSoilSensor(sSoilSensorData* soilSensorData)
     }
     case 1:
     {
-      sSoilSensorData newSoilSensorData;
+      sSoilSensorData newSoilSensorData = *soilSensorData;
+
       if( checkSoilSensor(&newSoilSensorData) )
       {
         *soilSensorData = fillSoilSensorDataArray(soilSensorDataArray, newSoilSensorData);
@@ -49,7 +50,7 @@ sSoilSensorData cSoilSensor::fillSoilSensorDataArray(sSoilSensorData* soilSensor
   soilSensorDataArray[currentIndex] = newSoilSensorData;
 
   // Increment the current index, and roll over if it reaches the end of the array
-  if(currentIndex == 9) bufferFull = true;
+  if(currentIndex == soilSensorArraySize - 1) bufferFull = true;
   currentIndex = (currentIndex + 1) % soilSensorArraySize;
 
   // Calculate the average of the data collected
@@ -125,8 +126,14 @@ bool cSoilSensor::checkSoilSensor(sSoilSensorData* soilSensorData)
       uint8_t data[100] = { 0 };
       if(mySerial.available())
       {
+        unsigned long loopStartTime = millis();
+        unsigned long timeout = 1000; // timeout after 1000 milliseconds        
         while (mySerial.available() > 0) 
         {
+          if (millis() - loopStartTime > timeout)
+          {
+              break; // exit the loop if timeout is reached
+          }          
           int temp = mySerial.read();
           data[i++] = temp;
         }
