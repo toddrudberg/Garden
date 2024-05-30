@@ -16,8 +16,8 @@ class cAdafruitLogger
 {
 public:
     bool setupLogger();
-    bool writeData(sSoilSensorData* soilSensorData);
-    void RunLogger(sSoilSensorData* soilSensorData);
+
+    void RunLogger(sSoilSensorData* soilSensorData, bool wifiConnectionFailed);
 
     bool setupRTC();
     char* getExcelFormattedDate();
@@ -25,6 +25,6 @@ public:
     uint32_t getUnixTime();
     void SetTime(unsigned long unixTime);
 private:
-
+    bool writeData(sSoilSensorData* soilSensorData, bool wifiConnectionFailed);
 };
 #endif// ADAFUITLOGGER_H

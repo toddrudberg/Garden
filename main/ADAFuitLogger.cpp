@@ -5,7 +5,7 @@ RTC_PCF8523 rtc;
 
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData)
+void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData, bool wifiConnectionFailed)
 {
     static int step = 0;
     const int timeDelay = 10000;
@@ -29,7 +29,7 @@ void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData)
                 startTime = millis();
                 soilSensorData->dateStamp = getExcelFormattedDate();
                 soilSensorData->timeStamp = getExcelFormattedTime();
-                if( !writeData(soilSensorData))
+                if( !writeData(soilSensorData, wifiConnectionFailed))
                 {
                     step = 0;
                     Serial.println("Error writing data to SD card.");
@@ -46,7 +46,7 @@ bool cAdafruitLogger::setupRTC()
 
     for( int i = 0; i < 10; i++)
     {
-    if (!rtc.begin()) 
+      if (!rtc.begin()) 
       {
         Serial.println("Couldn't find RTC");
         if(i == 9)
@@ -59,6 +59,7 @@ bool cAdafruitLogger::setupRTC()
       else
       {
         Serial.println("RTC found!");
+        rtcFailed = false;
         break;
       }
     }
@@ -82,6 +83,13 @@ void cAdafruitLogger::SetTime(unsigned long unixTime)
 {
   // Get the current time from the RTC
   DateTime now = rtc.now();
+
+  // unixTime is in the year 2024 to 2025 continue to set time, otherwise return
+  if (unixTime < 1704067200 || unixTime > 1767225600) 
+  {
+    Serial.println("Invalid Unix Time.");
+    return;
+  }
 
   // Calculate the difference between the current time and unixTime
   long difference = labs(now.unixtime() - unixTime);
@@ -140,7 +148,7 @@ bool cAdafruitLogger::setupLogger()
     return true;
 }
 
-bool cAdafruitLogger::writeData(sSoilSensorData* soilSensorData)
+bool cAdafruitLogger::writeData(sSoilSensorData* soilSensorData, bool wifiConnectionFailed)
 {
   if (!SD.exists(FileName)) 
   {
@@ -148,8 +156,7 @@ bool cAdafruitLogger::writeData(sSoilSensorData* soilSensorData)
     if (dataFile) 
     {
       //DateStamp, TimeStamp, Epoch, OutsideAirTemp, OutsideHumidity, OutsideBaro, SoilTemperature, SoilElectricalConductivity, SoilHumidity, SoilPh, Watering, WifiError, SDError, RTCFailed
-      dataFile.println("DateStamp, TimeStamp, Epoch, OutsideAirTemp, OutsideHumidity, OutsideBaro, SoilTemperature, SoilElectricalConductivity, SoilHumidity, SoilPh, Watering, AutoWaterEnabled, AutoWaterCycleOn, WifiError, SDError, RTCFailed, remoteServerFails");
-      dataFile.close();
+      dataFile.println("DateStamp, TimeStamp, Epoch, OutsideAirTemp, OutsideHumidity, OutsideBaro, SoilTemperature, SoilElectricalConductivity, SoilHumidity, SoilPh, ManualWateringOn, AutoWaterEnabled, AutoWaterCycleOn, WifiError, SDError, RTCFailed, RemoteServerFails, WateringTimeStart, WateringDuration");      dataFile.close();
     } 
     else 
     {
@@ -188,14 +195,16 @@ bool cAdafruitLogger::writeData(sSoilSensorData* soilSensorData)
     dataFile.print(", ");
     dataFile.print(wifiConnectionFailed);
     dataFile.print(", ");
-    dataFile.print(SD.exists(FileName));
+    dataFile.print(!SD.exists(FileName));
     dataFile.print(", ");
     dataFile.print(rtcFailed);
     dataFile.print(", ");
-    dataFile.println(gremoteServerFails);
+    dataFile.print(gremoteServerFails);
+    dataFile.print(", ");
+    dataFile.print(gWateringTimeStart);
+    dataFile.print(", ");
+    dataFile.println(gWateringDuration);
     dataFile.close();
-    // Serial.print("Temperature data written to ");
-    // Serial.println(FileName);
     return true;
   } 
   else 

@@ -80,7 +80,6 @@ void setup()
     Serial.println("RTC setup failed.");
     softwareReset();
   }
-
 }
 
 bool firstPass = true;
@@ -89,11 +88,15 @@ unsigned long epochTime = 0;
 void loop()
 {
     unsigned long epoch = 0;
-    if(!firstPass && !wifiConnectionFailed && wifiInterface.CheckNtpTime(&epoch))
+    if(!firstPass && WiFi.status() == WL_CONNECTED && wifiInterface.CheckNtpTime(&epoch))
     {
       if(rtcFailed)
       {
         epochTime = epoch;
+        if( logger.setupRTC() )
+        { 
+          logger.SetTime(epoch);
+        }
       }
       else 
       {
@@ -120,9 +123,9 @@ void loop()
 
     wifiInterface.runWIFI(&soilSensorData, myTime);
 
-    logger.RunLogger(&soilSensorData);
+    logger.RunLogger(&soilSensorData, WiFi.status() != WL_CONNECTED);
 
-  if(wifiConnectionFailed && rtcFailed)
+  if(WiFi.status() != WL_CONNECTED && rtcFailed)
   {
     softwareReset();
   }

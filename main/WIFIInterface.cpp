@@ -9,6 +9,7 @@ cWIFIInterface::cWIFIInterface() : timeClient(ntpUDP, "pool.ntp.org", -25200), s
 void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
 {
     static int state = 0;
+    static bool wifiConnectionFailed = false;
     switch(state)
     {
         case 0:
@@ -86,7 +87,7 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
 bool cWIFIInterface::manageDropServer(sSoilSensorData* soilSensorData, time_t epochTime)
 {
     const unsigned long serverRest = 10000; //general rest time between server requests
-    const unsigned long serverUpdateLogDelay = 1000; //if a state change, we wait this long before sending the update.  must be smaller than serverRest
+    const unsigned long serverUpdateLogDelay = 5000; //if a state change, we wait this long before sending the update.  must be smaller than serverRest
     const unsigned long serverUpdateLogInterval = 60000; //generally, we log every 60 seconds
     static unsigned long lastServerRequestTime = 0;
     static unsigned long lastLogtime = 0;
@@ -127,7 +128,8 @@ bool cWIFIInterface::manageDropServer(sSoilSensorData* soilSensorData, time_t ep
                         state++;
                     }
                 }
-                lastServerRequestTime = updateServer ? millis() + serverRest - serverUpdateLogDelay : millis();
+                //lastServerRequestTime = updateServer ? millis() + serverRest - serverUpdateLogDelay : millis();
+                lastServerRequestTime = millis();  //this is more conservative. we will always wait serverRest time before trying again
                 break;
             case 1:
                 serverConnection = update_dropServer(soilSensorData, epochTime);                
@@ -159,6 +161,7 @@ bool cWIFIInterface::setupWIFI()
     WiFi.config(ip, dns, gateway, subnet);
     
     WiFi.begin(ssid, password);
+    delay(1000);
     return WiFi.status() == WL_CONNECTED;  
 }
 
@@ -177,11 +180,11 @@ bool cWIFIInterface::CheckNtpTime(unsigned long *epochTime)
             *epochTime = timeClient.getEpochTime();
             lastNtpTime = *epochTime; // Update lastNtpTime with the new NTP time
             startTime = millis(); // Update startTime with the current millis
-            return false;
         } 
         else 
         {
             Serial.println("NTP time update failed.");
+            return false;
         }
     } 
 
@@ -285,7 +288,7 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
     }
     doc["autoWaterCycleEnabled"] = totalState.autoWaterCycleActive;
     doc["TimeRemaining"] = wateringTimeRemaining;
-    doc["WifiError"] = wifiConnectionFailed;
+    doc["WifiError"] = WiFi.status() != WL_CONNECTED;
 #ifndef DEBUGER
     doc["SDError"] = !SD.exists(FileName);
 #else
@@ -296,7 +299,6 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
     if (WiFi.status() != WL_CONNECTED) 
     {
         Serial.println("update_dropServer: WiFi not connected. Attempting to reconnect...");
-
     }
 
     serializeJson(doc, jsonString);
