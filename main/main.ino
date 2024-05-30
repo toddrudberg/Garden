@@ -80,7 +80,6 @@ void setup()
     Serial.println("RTC setup failed.");
     softwareReset();
   }
-
 }
 
 bool firstPass = true;
@@ -88,41 +87,43 @@ unsigned long epochTime = 0;
 
 void loop()
 {
-    unsigned long epoch = 0;
-    if(!firstPass && !wifiConnectionFailed && wifiInterface.CheckNtpTime(&epoch))
+  unsigned long epoch = 0;
+  if(!firstPass && WiFi.status() == WL_CONNECTED && wifiInterface.CheckNtpTime(&epoch))
+  {
+    if (rtcFailed && logger.setupRTC())
     {
-      if(rtcFailed)
-      {
-        epochTime = epoch;
-      }
-      else 
-      {
-        logger.SetTime(epoch);
-        epochTime = logger.getUnixTime();
-      }
+      logger.SetTime(epoch);
     }
-    else
+
+    if (!rtcFailed)
     {
-      epochTime = logger.getUnixTime();
+      logger.SetTime(epoch);
     }
-    
-    // If millis() is going to rollover in the next 24 hours
-    if (millis() > ULONG_MAX - 86400000) {
-        softwareReset();
-    }    
-    
-    soilSensorData.epochTime = epochTime;
-    bme280.runBME(&soilSensorData);
 
-    soilSensor.runSoilSensor(&soilSensorData);
+    epochTime = logger.getUnixTime();
+  }
+  else
+  {
+    epochTime = logger.getUnixTime();
+  }
+  
+  // If millis() is going to rollover in the next 24 hours
+  if (millis() > ULONG_MAX - 86400000) {
+      softwareReset();
+  }    
+  
+  soilSensorData.epochTime = epochTime;
+  bme280.runBME(&soilSensorData);
 
-    time_t myTime = static_cast<time_t>(epochTime);
+  soilSensor.runSoilSensor(&soilSensorData);
 
-    wifiInterface.runWIFI(&soilSensorData, myTime);
+  time_t myTime = static_cast<time_t>(epochTime);
 
-    logger.RunLogger(&soilSensorData);
+  wifiInterface.runWIFI(&soilSensorData, myTime);
 
-  if(wifiConnectionFailed && rtcFailed)
+  logger.RunLogger(&soilSensorData, WiFi.status() != WL_CONNECTED);
+
+  if(WiFi.status() != WL_CONNECTED && rtcFailed)
   {
     softwareReset();
   }

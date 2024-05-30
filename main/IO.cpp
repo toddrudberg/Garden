@@ -32,5 +32,4 @@ bool gAutoWateringEnabled = true;
 bool gAutoWateringCycleOn = false;
 
 bool rtcFailed = false;
-bool wifiConnectionFailed = false;
 extern unsigned long gremoteServerFails = 0;
