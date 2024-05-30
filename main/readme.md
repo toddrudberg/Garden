@@ -1,3 +1,8 @@
+# todo
+currently the time errors are based on hard coded values 2024 to 2025.
+I'd like to get the lower limit from compile time
+Add 2 years to that to set upper limit. 
+
 # Soil Sensor Data Logger
 
 This project logs soil sensor data to an SD card using an Arduino and the Adafruit SD library.

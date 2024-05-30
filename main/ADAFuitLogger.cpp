@@ -83,9 +83,9 @@ void cAdafruitLogger::SetTime(unsigned long unixTime)
 {
   // Get the current time from the RTC
   DateTime now = rtc.now();
-
+  DateTime dtUnixIn = DateTime(unixTime);
   // unixTime is in the year 2024 to 2025 continue to set time, otherwise return
-  if (unixTime < 1704067200 || unixTime > 1767225600) 
+  if ( dtUnixIn.year() < 2024 || dtUnixIn.year() > 2025) 
   {
     Serial.println("Invalid Unix Time.");
     return;
@@ -111,6 +111,10 @@ void cAdafruitLogger::SetTime(unsigned long unixTime)
 
 uint32_t cAdafruitLogger::getUnixTime() {
   DateTime now = rtc.now();
+  if( now.year() < 2024 || now.year() > 2025)
+  {
+    rtcFailed = true;
+  }
   return now.unixtime();
 }
 
