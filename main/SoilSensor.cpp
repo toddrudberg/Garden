@@ -70,14 +70,16 @@ sSoilSensorData cSoilSensor::fillSoilSensorDataArray(sSoilSensorData* soilSensor
     soilElectricalConductivitySum += soilSensorDataArray[i].soilElectricalConductivity;
 
     double shTest = static_cast<double>(soilSensorDataArray[i].soilMoisture);
-    if( shTest < 0 || shTest > 100)
+    // if we are less than ten, we need water regardless.  if it's greater than 50 we are way too wet.
+    if( shTest < 10 || shTest > 50)
     {
       shTest = soilMoistureAvg;
     }
-    else if(fabs(shTest - soilMoistureAvg) > 10)
-    {
-      shTest = soilMoistureAvg;
-    }
+    // this is a little risky.  We'll add this when we are at home and can monitor the results.
+    // else if(fabs(shTest - soilMoistureAvg) > 20)
+    // {
+    //   shTest = soilMoistureAvg;
+    // }
 
     soilMoistureSum += shTest;//soilSensorDataArray[i].soilMoisture;
     soilPhSum += soilSensorDataArray[i].soilPh;
