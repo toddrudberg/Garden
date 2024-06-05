@@ -1,6 +1,7 @@
 #include "WIFIInterface.h"
 
 
+
 cWIFIInterface::cWIFIInterface() : timeClient(ntpUDP, "pool.ntp.org", -25200), server(80) 
 {
 }
@@ -354,8 +355,9 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
 void cWIFIInterface::setManualWaterStatus(bool request)
 {
     bool startWaterReceived = request;
+    static bool startWaterReceivedLast = false;
 
-    if(startWaterReceived && !gManualWateringOn)
+    if(startWaterReceived && !gManualWateringOn && !startWaterReceivedLast)
     {
         gManualWateringOn = true;
         gWateringDuration = 60 * 10; // 10 minutes
@@ -365,6 +367,7 @@ void cWIFIInterface::setManualWaterStatus(bool request)
     {
         gManualWateringOn = false;
     }
+    startWaterReceivedLast = startWaterReceived;
 }
 
 void cWIFIInterface::setAutolWaterStatus(bool request)

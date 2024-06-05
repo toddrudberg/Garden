@@ -45,6 +45,7 @@ sSoilSensorData cSoilSensor::fillSoilSensorDataArray(sSoilSensorData* soilSensor
 {
   static int currentIndex = 0;
   static bool bufferFull = false;
+  static double soilMoistureAvg = 25; //intialize to 25% moisture
 
   // Add the new object to the array at the current index
   soilSensorDataArray[currentIndex] = newSoilSensorData;
@@ -67,14 +68,25 @@ sSoilSensorData cSoilSensor::fillSoilSensorDataArray(sSoilSensorData* soilSensor
     outsideAirHumiditySum += soilSensorDataArray[i].outsideAirHumidity;
     soilTemperatureSum += soilSensorDataArray[i].soilTemperature;
     soilElectricalConductivitySum += soilSensorDataArray[i].soilElectricalConductivity;
-    soilMoistureSum += soilSensorDataArray[i].soilMoisture;
+
+    double shTest = static_cast<double>(soilSensorDataArray[i].soilMoisture);
+    if( shTest < 0 || shTest > 100)
+    {
+      shTest = soilMoistureAvg;
+    }
+    else if(fabs(shTest - soilMoistureAvg) > 10)
+    {
+      shTest = soilMoistureAvg;
+    }
+
+    soilMoistureSum += shTest;//soilSensorDataArray[i].soilMoisture;
     soilPhSum += soilSensorDataArray[i].soilPh;
   }
   double outsideAirTempAvg = outsideAirTempSum / bufferLength;
   double outsideAirHumidityAvg = outsideAirHumiditySum / bufferLength;
   double soilTemperatureAvg = soilTemperatureSum / bufferLength;
   double soilElectricalConductivityAvg = soilElectricalConductivitySum / bufferLength;
-  double soilMoistureAvg = soilMoistureSum / bufferLength;
+  soilMoistureAvg = soilMoistureSum / bufferLength;
   double soilPhAvg = soilPhSum / bufferLength;
 
   // Create a new object to hold the average data

@@ -154,7 +154,7 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
   bool startCycle2 = myTimeStruct->tm_hour == 7 && (myTimeStruct->tm_min >= 0 && myTimeStruct->tm_min < 1);
 
 
-  bool needsWater = soilSensorData->soilMoisture < 20;
+  bool needsWater = soilSensorData->soilMoisture < 22;
 
   if( difftime(myTime, displayData) > 60)
   {
