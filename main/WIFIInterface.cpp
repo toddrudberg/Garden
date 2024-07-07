@@ -187,7 +187,7 @@ bool cWIFIInterface::CheckNtpTime(unsigned long *epochTime)
     static unsigned long lastNtpTime = 0;
 
     unsigned long currentTime = millis();
-    bool isTimeForUpdate = (currentTime - startTime > 60000) || (lastNtpTime == 0);
+    bool isTimeForUpdate = (currentTime - startTime > 3600000) || (lastNtpTime == 0);
 
     if (!isTimeForUpdate) 
     {
@@ -300,6 +300,7 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
     doc["SoilHumidity"].set(round(totalState.soilSensorData.soilMoisture * 10.0) / 10.0);
     doc["SoilPh"].set(round(totalState.soilSensorData.soilPh * 10.0) / 10.0);
     doc["Watering"] = totalState.watering;
+    
 #ifndef DEBUGER
     float wateringTimeRemaining = (totalState.wateringDuration - (logger.getUnixTime() - totalState.wateringTimeStart)) / 60.0;
 #else

@@ -46,6 +46,7 @@ sSoilSensorData cSoilSensor::fillSoilSensorDataArray(sSoilSensorData* soilSensor
   static int currentIndex = 0;
   static bool bufferFull = false;
   static double soilMoistureAvg = 25; //intialize to 25% moisture
+  static double soilTemperatureAvg = 60; //intialize to 60 degrees F
 
   // Add the new object to the array at the current index
   soilSensorDataArray[currentIndex] = newSoilSensorData;
@@ -66,7 +67,15 @@ sSoilSensorData cSoilSensor::fillSoilSensorDataArray(sSoilSensorData* soilSensor
   {
     outsideAirTempSum += soilSensorDataArray[i].outsideAirTemp;
     outsideAirHumiditySum += soilSensorDataArray[i].outsideAirHumidity;
-    soilTemperatureSum += soilSensorDataArray[i].soilTemperature;
+
+    double stTest = static_cast<double>(soilSensorDataArray[i].soilTemperature);
+    // if we are less than 32, we need heat regardless.  if it's greater than 100 we are way too hot.
+    if( stTest < 32 || stTest > 100)
+    {
+      stTest = soilTemperatureAvg;
+    }
+    soilTemperatureSum += stTest;//soilSensorDataArray[i].soilTemperature;
+
     soilElectricalConductivitySum += soilSensorDataArray[i].soilElectricalConductivity;
 
     double shTest = static_cast<double>(soilSensorDataArray[i].soilMoisture);
@@ -86,7 +95,7 @@ sSoilSensorData cSoilSensor::fillSoilSensorDataArray(sSoilSensorData* soilSensor
   }
   double outsideAirTempAvg = outsideAirTempSum / bufferLength;
   double outsideAirHumidityAvg = outsideAirHumiditySum / bufferLength;
-  double soilTemperatureAvg = soilTemperatureSum / bufferLength;
+  soilTemperatureAvg = soilTemperatureSum / bufferLength;
   double soilElectricalConductivityAvg = soilElectricalConductivitySum / bufferLength;
   soilMoistureAvg = soilMoistureSum / bufferLength;
   double soilPhAvg = soilPhSum / bufferLength;
