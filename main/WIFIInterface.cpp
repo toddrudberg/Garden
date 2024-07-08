@@ -1,6 +1,7 @@
 #include "WIFIInterface.h"
 
 
+
 cWIFIInterface::cWIFIInterface() : timeClient(ntpUDP, "pool.ntp.org", -25200), server(80) 
 {
 }
@@ -186,7 +187,7 @@ bool cWIFIInterface::CheckNtpTime(unsigned long *epochTime)
     static unsigned long lastNtpTime = 0;
 
     unsigned long currentTime = millis();
-    bool isTimeForUpdate = (currentTime - startTime > 60000) || (lastNtpTime == 0);
+    bool isTimeForUpdate = (currentTime - startTime > 3600000) || (lastNtpTime == 0);
 
     if (!isTimeForUpdate) 
     {
@@ -299,6 +300,7 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
     doc["SoilHumidity"].set(round(totalState.soilSensorData.soilMoisture * 10.0) / 10.0);
     doc["SoilPh"].set(round(totalState.soilSensorData.soilPh * 10.0) / 10.0);
     doc["Watering"] = totalState.watering;
+    
 #ifndef DEBUGER
     float wateringTimeRemaining = (totalState.wateringDuration - (logger.getUnixTime() - totalState.wateringTimeStart)) / 60.0;
 #else
@@ -354,8 +356,9 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
 void cWIFIInterface::setManualWaterStatus(bool request)
 {
     bool startWaterReceived = request;
+    static bool startWaterReceivedLast = false;
 
-    if(startWaterReceived && !gManualWateringOn)
+    if(startWaterReceived && !gManualWateringOn && !startWaterReceivedLast)
     {
         gManualWateringOn = true;
         gWateringDuration = 60 * 10; // 10 minutes
@@ -365,6 +368,7 @@ void cWIFIInterface::setManualWaterStatus(bool request)
     {
         gManualWateringOn = false;
     }
+    startWaterReceivedLast = startWaterReceived;
 }
 
 void cWIFIInterface::setAutolWaterStatus(bool request)

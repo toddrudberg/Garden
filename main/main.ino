@@ -145,29 +145,32 @@ void loop()
 void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
 {
   static bool autoCycleActive = false;
-  static time_t autoCycleStartTime = 0;
-
+  static unsigned long autoCycleStartTime = 0;
+  static unsigned long wateringDuration = 0; // Default duration
   static time_t displayData = myTime;
 
   struct tm *myTimeStruct = localtime(&myTime);
-  bool startCycle1 = myTimeStruct->tm_hour == 6 && (myTimeStruct->tm_min >= 0 && myTimeStruct->tm_min < 1);
-  bool startCycle2 = myTimeStruct->tm_hour == 7 && (myTimeStruct->tm_min >= 0 && myTimeStruct->tm_min < 1);
+  bool startCycle09 = myTimeStruct->tm_hour == 9 && (myTimeStruct->tm_min >= 0 && myTimeStruct->tm_min < 1);
+  bool startCycle14 = myTimeStruct->tm_hour == 14 && (myTimeStruct->tm_min >= 0 && myTimeStruct->tm_min < 1);
+  bool startCycle17 = myTimeStruct->tm_hour == 17 && (myTimeStruct->tm_min >= 0 && myTimeStruct->tm_min < 1);
 
+  float soilMoisture = soilSensorData->soilMoisture;
 
-  bool needsWater = soilSensorData->soilMoisture < 20;
 
   if( difftime(myTime, displayData) > 60)
   {
     Serial.println();
     
     Serial.print("startCycle1: ");
-    Serial.println(startCycle1);
+    Serial.println(startCycle09);
     
     Serial.print("startCycle2: ");
-    Serial.println(startCycle2);
-    
-    Serial.print("needsWater: ");
-    Serial.println(needsWater);
+    Serial.println(startCycle14);
+
+        
+    Serial.print("startCycle17: ");
+    Serial.println(startCycle17);
+
     
     Serial.print("autoCycleActive: ");
     Serial.println(autoCycleActive);
@@ -177,28 +180,61 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
 
     Serial.print("autoCycleStartTime: ");
 
-    struct tm *autoCycleStruct = localtime(&autoCycleStartTime);
-    char timeStr[9]; // Buffer to hold the time string
-    Serial.print("AutoCycle Start Time: ");
-    sprintf(timeStr, "%02d:%02d:%02d", autoCycleStruct->tm_hour, autoCycleStruct->tm_min, autoCycleStruct->tm_sec);
-    Serial.println(timeStr);
-    
+
+    // output the autoCycleStartTime
+    Serial.print("autoCycleStartTime: ");
+    Serial.println(autoCycleStartTime);
+    //output the wateringDuration
+    Serial.print("wateringDuration: ");
+    Serial.println(wateringDuration);
+    //output the remainting time:
+    Serial.print("Remaining Time: ");
+    unsigned long remainingTime = autoCycleActive ? wateringDuration - (millis() / 1000 - autoCycleStartTime) : 0;
+    Serial.println(remainingTime);
+    Serial.print("Current Time: ");
+    Serial.println(millis() / 1000);
+
     tm *myTimeStruct = localtime(&myTime);
     Serial.print("Time: ");
-    timeStr[9]; // Buffer to hold the time string
+    char timeStr[10]; // Correctly declare the buffer to hold the time string
     sprintf(timeStr, "%02d:%02d:%02d", myTimeStruct->tm_hour, myTimeStruct->tm_min, myTimeStruct->tm_sec);
     Serial.println(timeStr);
     Serial.println();
 
+
     displayData = myTime;
   }
 
-  if( (startCycle1 && !autoCycleActive) || (startCycle2 && !autoCycleActive) )
+
+
+  if (!autoCycleActive && (startCycle09 || startCycle14 || startCycle17)) 
   {
-    autoCycleActive = needsWater && gAutoWateringEnabled;
     autoCycleStartTime = millis() / 1000;
+
+    if (startCycle09 && soilMoisture < 28.0) 
+    {
+      float lowMoisture = 22.0; // 22% soil moisture - moisture is low
+      float highMoisture = 28.0; // 28% soil moisture - moisture is high
+      float lowDuration = 20.0; // 20 minutes if soil moisture is 22%
+      float highDuration = 8.0; // 5 minutes if soil moisture is 28%
+      const float m = (lowDuration - highDuration) / (lowMoisture - highMoisture);
+      const float b = lowDuration - m * lowMoisture; 
+      float wateringTime = m * soilMoisture + b;
+      wateringDuration = 60 * wateringTime;
+    } 
+    else if ((startCycle14 || startCycle17) && soilMoisture < 25.0) 
+    {
+      wateringDuration = 60 * 5; // For both startCycle14 and startCycle17
+    }
+
+    // Activate the cycle if wateringDuration is set
+    if (wateringDuration > 0) 
+    {
+      autoCycleActive = true;
+    }
   }
-  else if( (millis() / 1000 - autoCycleStartTime) > 60 * 10 )
+
+  if (autoCycleActive && ((millis() / 1000 - autoCycleStartTime) > wateringDuration)) 
   {
     autoCycleActive = false;
   }
