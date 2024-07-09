@@ -120,7 +120,7 @@ bool cWIFIInterface::manageDropServer(sSoilSensorData* soilSensorData, time_t ep
                 if(serverConnection)
                 {
                     setAutolWaterStatus(autoWateringRequest);
-                    setManualWaterStatus(manualWateringRequest);
+                    setManualWaterStatus(manualWateringRequest, epochTime);
                     updateServer  =  autoWateringRequest != autoWateringRequestlast || 
                                         manualWateringRequest != manualWateringRequestlast|| 
                                         refreshRequest != refreshRequestLast ;
@@ -185,9 +185,10 @@ bool cWIFIInterface::CheckNtpTime(unsigned long *epochTime)
 {
     static unsigned long startTime = millis();
     static unsigned long lastNtpTime = 0;
-
     unsigned long currentTime = millis();
-    bool isTimeForUpdate = (currentTime - startTime > 3600000) || (lastNtpTime == 0);
+    unsigned long updateIntervalMinutes = 60;
+    unsigned long updateInterval = updateIntervalMinutes  * 60 * 1000; 
+    bool isTimeForUpdate = (currentTime - startTime > updateInterval) || (lastNtpTime == 0);
 
     if (!isTimeForUpdate) 
     {
@@ -302,7 +303,8 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
     doc["Watering"] = totalState.watering;
     
 #ifndef DEBUGER
-    float wateringTimeRemaining = (totalState.wateringDuration - (logger.getUnixTime() - totalState.wateringTimeStart)) / 60.0;
+    unsigned long ulEpochTime = USERTC ? logger.getUnixTime() : static_cast<unsigned long>(epochTime);
+    float wateringTimeRemaining = (totalState.wateringDuration - (ulEpochTime - totalState.wateringTimeStart)) / 60.0;
 #else
     float wateringTimeRemaining = (totalState.wateringDuration - (epochTime - totalState.wateringTimeStart)) / 60.0;
 #endif
@@ -353,7 +355,7 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
 }
 
 
-void cWIFIInterface::setManualWaterStatus(bool request)
+void cWIFIInterface::setManualWaterStatus(bool request, time_t epochTime)
 {
     bool startWaterReceived = request;
     static bool startWaterReceivedLast = false;
@@ -362,7 +364,8 @@ void cWIFIInterface::setManualWaterStatus(bool request)
     {
         gManualWateringOn = true;
         gWateringDuration = 60 * 10; // 10 minutes
-        gWateringTimeStart = logger.getUnixTime();
+        unsigned long ulEpochTime = USERTC ? logger.getUnixTime() : static_cast<unsigned long>(epochTime);
+        gWateringTimeStart = ulEpochTime;
     }
     else if(!startWaterReceived)
     {

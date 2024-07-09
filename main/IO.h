@@ -6,6 +6,8 @@
 #include <limits.h>
 #include <EEPROM.h>
 
+#define USERTC false
+
 extern SoftwareSerial mySerial;
 
 extern const char remoteServer[];
@@ -57,4 +59,5 @@ extern bool gManualWateringOn;
 extern bool gAutoWateringEnabled;
 extern bool gAutoWateringCycleOn;
 extern unsigned long gremoteServerFails;
+
 #endif// IO.h

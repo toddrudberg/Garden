@@ -5,7 +5,7 @@ RTC_PCF8523 rtc;
 
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData, bool wifiConnectionFailed)
+void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData, bool wifiConnectionFailed, time_t epochTime)
 {
     static int step = 0;
     const int timeDelay = 10000;
@@ -27,8 +27,8 @@ void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData, bool wifiConnec
             if( millis() - startTime > loggingInterval)
             {
                 startTime = millis();
-                soilSensorData->dateStamp = getExcelFormattedDate();
-                soilSensorData->timeStamp = getExcelFormattedTime();
+                soilSensorData->dateStamp = getExcelFormattedDate(epochTime);
+                soilSensorData->timeStamp = getExcelFormattedTime(epochTime);
                 if( !writeData(soilSensorData, wifiConnectionFailed))
                 {
                     step = 0;
@@ -118,9 +118,10 @@ uint32_t cAdafruitLogger::getUnixTime() {
   return now.unixtime();
 }
 
-char* cAdafruitLogger::getExcelFormattedDate() {
+char* cAdafruitLogger::getExcelFormattedDate(time_t epochTime) 
+{
   static char dateString[11]; // Buffer to hold the date string
-  DateTime now = rtc.now();
+  DateTime now = USERTC ? rtc.now() : DateTime(epochTime);
 
   // Format the date into the string
   sprintf(dateString, "%04d-%02d-%02d", now.year(), now.month(), now.day());
@@ -128,9 +129,10 @@ char* cAdafruitLogger::getExcelFormattedDate() {
   return dateString;
 }
 
-char* cAdafruitLogger::getExcelFormattedTime() {
+char* cAdafruitLogger::getExcelFormattedTime(time_t epochTime) 
+{
   static char timeString[9]; // Buffer to hold the time string
-  DateTime now = rtc.now();
+  DateTime now = USERTC ? rtc.now() : DateTime(epochTime);
 
   // Format the time into the string
   sprintf(timeString, "%02d:%02d:%02d", now.hour(), now.minute(), now.second());

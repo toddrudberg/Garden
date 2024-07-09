@@ -71,9 +71,9 @@ void setup()
   {
     Serial.println("RTC setup successful.");
     Serial.print("Current time: ");
-    Serial.println(logger.getExcelFormattedTime());
+    Serial.println(logger.getExcelFormattedTime(0));
     Serial.print("Current Date: ");
-    Serial.println(logger.getExcelFormattedDate());
+    Serial.println(logger.getExcelFormattedDate(0));
   }
   else
   {
@@ -83,30 +83,33 @@ void setup()
 }
 
 bool firstPass = true;
-unsigned long epochTime = 0;
 
 void loop()
 {
-  unsigned long epoch = 0;
-  if(!firstPass && WiFi.status() == WL_CONNECTED && wifiInterface.CheckNtpTime(&epoch))
-  {
-    if (rtcFailed && logger.setupRTC())
-    {
-      logger.SetTime(epoch);
-    }
+  static unsigned long epochTime = 0;
+  // unsigned long epoch = 0;
+  // if(!firstPass && WiFi.status() == WL_CONNECTED && wifiInterface.CheckNtpTime(&epoch))
+  // {
+  //   if (rtcFailed && logger.setupRTC())
+  //   {
+  //     logger.SetTime(epoch);
+  //   }
 
-    if (!rtcFailed)
-    {
-      logger.SetTime(epoch);
-    }
+  //   if (!rtcFailed)
+  //   {
+  //     logger.SetTime(epoch);
+  //   }
 
-    epochTime = logger.getUnixTime();
-  }
-  else
-  {
-    epochTime = logger.getUnixTime();
-  }
+  //   epochTime = logger.getUnixTime();
+  // }
+  // else
+  // {
+  //   epochTime = logger.getUnixTime();
+  // }
   
+  wifiInterface.CheckNtpTime(&epochTime);
+  logger.SetTime(epochTime);
+
   // If millis() is going to rollover in the next 24 hours
   if (millis() > ULONG_MAX - 86400000) {
       softwareReset();
@@ -121,7 +124,7 @@ void loop()
 
   wifiInterface.runWIFI(&soilSensorData, myTime);
 
-  logger.RunLogger(&soilSensorData, WiFi.status() != WL_CONNECTED);
+  logger.RunLogger(&soilSensorData, WiFi.status() != WL_CONNECTED, myTime);
 
   if(WiFi.status() != WL_CONNECTED && rtcFailed)
   {
@@ -241,13 +244,13 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
 
   //indicate to the global state that the auto watering cycle is active
   gAutoWateringCycleOn = autoCycleActive;
-
+  unsigned long ulEpochTime = USERTC ? logger.getUnixTime() : static_cast<unsigned long>(myTime);
   if( gManualWateringOn || autoCycleActive )
   {
     digitalWrite(Valve1, HIGH);
     digitalWrite(Valve2, LOW);
     digitalWrite(Valve3, LOW);
-    if( logger.getUnixTime() - gWateringTimeStart > gWateringDuration)
+    if( ulEpochTime - gWateringTimeStart > gWateringDuration)
     {
       gManualWateringOn = false;
     }
@@ -257,9 +260,8 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
     digitalWrite(Valve1, LOW);
     digitalWrite(Valve2, LOW);
     digitalWrite(Valve3, LOW);
-    gWateringTimeStart = logger.getUnixTime() - gWateringDuration;
+    gWateringTimeStart = ulEpochTime - gWateringDuration;
   }
-
 }
 
 void printValues() {

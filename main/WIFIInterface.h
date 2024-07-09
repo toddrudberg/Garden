@@ -17,7 +17,7 @@ private:
     bool read_dropServer(int requestType);
     void checkWIFI(sSoilSensorData* soilSensorData, time_t epochTime);
     bool setupWIFI();
-    void setManualWaterStatus(bool request);
+    void setManualWaterStatus(bool request, time_t epochTime);
     void setAutolWaterStatus(bool request);
     bool manageDropServer(sSoilSensorData* soilSensorData, time_t epochTime);
     bool read_dropServer(bool* autoWateringRequest, bool* manualWaterOverrideRequest, bool* aRefreshRequest);

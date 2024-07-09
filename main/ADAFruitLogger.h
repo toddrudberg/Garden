@@ -17,11 +17,11 @@ class cAdafruitLogger
 public:
     bool setupLogger();
 
-    void RunLogger(sSoilSensorData* soilSensorData, bool wifiConnectionFailed);
+    void RunLogger(sSoilSensorData* soilSensorData, bool wifiConnectionFailed, time_t epochTime);
 
     bool setupRTC();
-    char* getExcelFormattedDate();
-    char* getExcelFormattedTime();
+    char* getExcelFormattedDate(time_t epochTime);
+    char* getExcelFormattedTime(time_t epochTime);
     uint32_t getUnixTime();
     void SetTime(unsigned long unixTime);
 private:
