@@ -2,7 +2,7 @@
 #include "SoilSensor.h"
 #include "WIFIInterface.h"
 #include "ADAFruitLogger.h"
-#include "BME280.h"
+#include "DFRobot_SEN0385.h"
 #include <malloc.h>
 
 
@@ -37,7 +37,8 @@ int freeRAM() {
 
 unsigned long checkeHeapTime = 0;
 
-cBME280 bme280;
+//cBME280 bme280;
+cSEN0385 DFRSEN0385;
 void setup()
 {
   Serial.begin(baud);
@@ -116,7 +117,8 @@ void loop()
   }    
   
   soilSensorData.epochTime = epochTime;
-  bme280.runBME(&soilSensorData);
+  //bme280.runBME(&soilSensorData);
+  DFRSEN0385.run385(&soilSensorData);
 
   soilSensor.runSoilSensor(&soilSensorData);
 
@@ -264,6 +266,7 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
     break;
 
   default:
+    autoCycleStep = 0;
     break;
   }
 
