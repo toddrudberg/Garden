@@ -276,6 +276,7 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
     totalState.wateringDuration = gWateringDuration;
     totalState.watering = gManualWateringOn || gAutoWateringCycleOn;
     totalState.autoWaterCycleActive = gAutoWateringEnabled;
+    
     // Create a JSON document
     
     // Convert the epoch time to a struct tm
@@ -320,6 +321,7 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
     doc["SDError"] = false;
 #endif
     doc["RTCFailed"] = rtcFailed;
+    doc["AvgTempPrevDay"] = soilSensorData->avgOATPreviousDay;
 
     if (WiFi.status() != WL_CONNECTED) 
     {
@@ -345,7 +347,8 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
         Serial.println("Data Sent");
         client.stop();  // Ensure the client is stopped
     } 
-    else {
+    else 
+    {
         // if you couldn't make a connection:
         connectionSolid = false;
         Serial.println("connection failed in update_dropServer");

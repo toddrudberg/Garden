@@ -37,6 +37,7 @@ struct sSoilSensorData
   float soilElectricalConductivity;
   float soilMoisture;
   float soilPh;
+  float avgOATPreviousDay;
 }; 
 
 struct sTotalState

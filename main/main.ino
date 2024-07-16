@@ -112,12 +112,14 @@ void loop()
   }    
   
   soilSensorData.epochTime = epochTime;
-  //bme280.runBME(&soilSensorData);
-  DFRSEN0385.run385(&soilSensorData);
+  
+  time_t myTime = static_cast<time_t>(epochTime);
+  
+  DFRSEN0385.run385(&soilSensorData, myTime);
 
   soilSensor.runSoilSensor(&soilSensorData);
 
-  time_t myTime = static_cast<time_t>(epochTime);
+
 
   wifiInterface.runWIFI(&soilSensorData, myTime);
 
