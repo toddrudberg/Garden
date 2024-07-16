@@ -1,7 +1,7 @@
 
 #include "DFRobot_SEN0385.h"
 
-DFRobot_SHT3x sht3x(&Wire, 0x44, -1); // I2C
+DFRobot_SHT3x sht3x(&Wire, 0x44, 4); // I2C
 
 void cSEN0385::run385(sSoilSensorData* sensorData)
 {
@@ -16,10 +16,11 @@ void cSEN0385::run385(sSoilSensorData* sensorData)
             switch(startState)
             {
                 case 0:
-                    if(!sht3x.begin())
+                    if( sht3x.begin() != 0)
                     {
                         startState++;
                         timeOut = millis();
+                        Serial.println("SEN0385 failed to start."); 
                     }
                     else 
                     {

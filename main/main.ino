@@ -5,12 +5,7 @@
 #include "DFRobot_SEN0385.h"
 #include <malloc.h>
 
-
-
 #define RESET_FLAG_ADDRESS 0 // EEPROM address to store the reset flag
-
-#define SEALEVELPRESSURE_HPA (1013.25)
-
 
 //todo:
 // 1. setup wifi
