@@ -2,15 +2,10 @@
 #include "SoilSensor.h"
 #include "WIFIInterface.h"
 #include "ADAFruitLogger.h"
-#include "BME280.h"
+#include "DFRobot_SEN0385.h"
 #include <malloc.h>
 
-
-
 #define RESET_FLAG_ADDRESS 0 // EEPROM address to store the reset flag
-
-#define SEALEVELPRESSURE_HPA (1013.25)
-
 
 //todo:
 // 1. setup wifi
@@ -37,7 +32,8 @@ int freeRAM() {
 
 unsigned long checkeHeapTime = 0;
 
-cBME280 bme280;
+//cBME280 bme280;
+cSEN0385 DFRSEN0385;
 void setup()
 {
   Serial.begin(baud);
@@ -116,11 +112,14 @@ void loop()
   }    
   
   soilSensorData.epochTime = epochTime;
-  bme280.runBME(&soilSensorData);
+  
+  time_t myTime = static_cast<time_t>(epochTime);
+  
+  DFRSEN0385.run385(&soilSensorData, myTime);
 
   soilSensor.runSoilSensor(&soilSensorData);
 
-  time_t myTime = static_cast<time_t>(epochTime);
+
 
   wifiInterface.runWIFI(&soilSensorData, myTime);
 
@@ -208,18 +207,27 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
     displayData = myTime;
   }
 
-
-
-  if (!autoCycleActive && (startCycle09 || startCycle14 || startCycle17)) 
+  static int autoCycleStep = 0;
+  switch (autoCycleStep)
   {
+  // check if the cycle should start
+  case 0:
+    if (startCycle09 || startCycle14 || startCycle17) 
+    {
+      autoCycleStep++;
+    }
+    break;
+
+  //calculate the watering duration
+  case 1:
     autoCycleStartTime = millis() / 1000;
 
-    if (startCycle09 && soilMoisture < 28.0) 
+    if (startCycle09 && soilMoisture < 30.0) 
     {
       float lowMoisture = 22.0; // 22% soil moisture - moisture is low
-      float highMoisture = 28.0; // 28% soil moisture - moisture is high
-      float lowDuration = 20.0; // 20 minutes if soil moisture is 22%
-      float highDuration = 8.0; // 5 minutes if soil moisture is 28%
+      float highMoisture = 30.0; // 30% soil moisture - moisture is high
+      float lowDuration = 25.0; // 25 minutes if soil moisture is 22%
+      float highDuration = 5.0; // 5 minutes if soil moisture is 28%
       const float m = (lowDuration - highDuration) / (lowMoisture - highMoisture);
       const float b = lowDuration - m * lowMoisture; 
       float wateringTime = m * soilMoisture + b;
@@ -229,18 +237,36 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
     {
       wateringDuration = 60 * 5; // For both startCycle14 and startCycle17
     }
-
-    // Activate the cycle if wateringDuration is set
-    if (wateringDuration > 0) 
+    else 
     {
-      autoCycleActive = true;
+      wateringDuration = 0;
     }
+    autoCycleStep++;
+    break;
+
+  // wait for the duration to expire
+  case 2:
+    autoCycleActive = true;
+    if ( (millis() / 1000 - autoCycleStartTime) > wateringDuration) 
+    {
+      autoCycleActive = false;
+      autoCycleStep++;
+    }
+    break;
+
+  // ensure the startCycle flags are not set
+  case 3:
+    if(!(startCycle09 || startCycle14 || startCycle17))
+    {
+      autoCycleStep = 0;
+    }
+    break;
+
+  default:
+    autoCycleStep = 0;
+    break;
   }
 
-  if (autoCycleActive && ((millis() / 1000 - autoCycleStartTime) > wateringDuration)) 
-  {
-    autoCycleActive = false;
-  }
 
   //indicate to the global state that the auto watering cycle is active
   gAutoWateringCycleOn = autoCycleActive;
