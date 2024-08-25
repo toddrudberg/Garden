@@ -5,7 +5,7 @@
 #include "DFRobot_SEN0385.h"
 #include <malloc.h>
 
-#define RESET_FLAG_ADDRESS 0 // EEPROM address to store the reset flag
+
 
 //todo:
 // 1. setup wifi
@@ -45,17 +45,17 @@ void setup()
   delay(1000);
   //digitalWrite(Valve1, LOW);
   delay(500);
-  if (EEPROM.read(RESET_FLAG_ADDRESS) == 0) // Check if the reset flag is 0 (i.e., the software reset hasn't been performed yet)
+  if (EEPROM.read(EEPROM_RESET_FLAG_ADDRESS) == 0) // Check if the reset flag is 0 (i.e., the software reset hasn't been performed yet)
   {
     Serial.println("Testing Software Reset");
     delay(1000);
-    EEPROM.write(RESET_FLAG_ADDRESS, 1); // Set the reset flag to 1 (i.e., the software reset has been performed)
+    EEPROM.write(EEPROM_RESET_FLAG_ADDRESS, 1); // Set the reset flag to 1 (i.e., the software reset has been performed)
     softwareReset();
   }
   else
   {
     Serial.println("Reset already performed");
-    EEPROM.write(RESET_FLAG_ADDRESS, 0);
+    EEPROM.write(EEPROM_RESET_FLAG_ADDRESS, 0);
   }
   //digitalWrite(Valve1, HIGH);
   delay(1000);

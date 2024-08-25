@@ -1,6 +1,7 @@
 
 #include "DFRobot_SEN0385.h"
 
+
 DFRobot_SHT3x sht3x(&Wire, 0x44, 4); // I2C
 
 void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
@@ -54,31 +55,39 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
                 sht3xData.temperature = (float)sht3x.getTemperatureF();
                 sht3xData.humidity = (float)sht3x.getHumidityRH();
         
-                unsigned long epochTime = sensorData->epochTime;
-        
                 // Check if current time is between 1400 (2 PM) and 1700 (5 PM)
                 if(currentHour >= 14 && currentHour < 17)
                 {
                     tempSum += sht3xData.temperature;
                     tempCount++;
-                    sht3xData.avgOATPreviousDay = tempSum / tempCount;
+                    if( tempCount > 0)
+                    {
+                        sht3xData.avgOATPreviousDay = tempSum / tempCount;
+                    }
                     avgCalculatedForDay = false; // Reset the flag during this period
                 }
-                else if(currentHour >= 17 && tempCount > 0 && !avgCalculatedForDay) // Past 1700 and we have readings
+                else if(currentHour >= 17 && !avgCalculatedForDay) // Past 1700 and we have readings
                 {
-                    sht3xData.avgOATPreviousDay = tempSum / tempCount;
+                    if( tempCount > 0)
+                    {
+                        sht3xData.avgOATPreviousDay = tempSum / tempCount;
+                        EEPROM.put(EEPROM_PREVIOUS_TEMP_LAST_DAY_ADDRESS, sht3xData.avgOATPreviousDay);     
+                    }               
                     // Reset for the next day
                     tempSum = 0;
                     tempCount = 0;
                     avgCalculatedForDay = true; // Set the flag to indicate average is calculated
-                    // Optionally, do something with averageTemp, like storing or displaying it
                 }
+            }
+            if(avgCalculatedForDay)
+            {
+                EEPROM.get(EEPROM_PREVIOUS_TEMP_LAST_DAY_ADDRESS, sht3xData.avgOATPreviousDay);
             }
             sensorData->outsideAirTemp = sht3xData.temperature;
             sensorData->outsideAirHumidity = sht3xData.humidity;
             sensorData->baroPressure = 0;
             sensorData->avgOATPreviousDay = sht3xData.avgOATPreviousDay;
-            break;        
+            break;
         }
         default:
             processState = 0;
