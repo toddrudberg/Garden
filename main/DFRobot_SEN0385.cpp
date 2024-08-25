@@ -43,10 +43,11 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
             static sSEN0385Data sht3xData;
             static float tempSum = 0; // Sum of temperatures
             static int tempCount = 0; // Count of temperature readings
+            static bool avgCalculatedForDay = false; // Flag to track if average is calculated for the day
         
             struct tm *myTimeStruct = localtime(&myTime);
             int currentHour = myTimeStruct->tm_hour;
-
+        
             if(millis() - lastRead > 1000)
             {
                 lastRead = millis();
@@ -61,23 +62,24 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
                     tempSum += sht3xData.temperature;
                     tempCount++;
                     sht3xData.avgOATPreviousDay = tempSum / tempCount;
+                    avgCalculatedForDay = false; // Reset the flag during this period
                 }
-                else if(currentHour >= 17 && tempCount > 0) // Past 1700 and we have readings
+                else if(currentHour >= 17 && tempCount > 0 && !avgCalculatedForDay) // Past 1700 and we have readings
                 {
                     sht3xData.avgOATPreviousDay = tempSum / tempCount;
                     // Reset for the next day
                     tempSum = 0;
                     tempCount = 0;
+                    avgCalculatedForDay = true; // Set the flag to indicate average is calculated
                     // Optionally, do something with averageTemp, like storing or displaying it
                 }
-
             }
             sensorData->outsideAirTemp = sht3xData.temperature;
             sensorData->outsideAirHumidity = sht3xData.humidity;
             sensorData->baroPressure = 0;
             sensorData->avgOATPreviousDay = sht3xData.avgOATPreviousDay;
             break;        
-          }
+        }
         default:
             processState = 0;
             break;
