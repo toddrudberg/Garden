@@ -5,7 +5,7 @@
 #include "DFRobot_SEN0385.h"
 #include <malloc.h>
 
-#define RESET_FLAG_ADDRESS 0 // EEPROM address to store the reset flag
+
 
 //todo:
 // 1. setup wifi
@@ -45,17 +45,17 @@ void setup()
   delay(1000);
   //digitalWrite(Valve1, LOW);
   delay(500);
-  if (EEPROM.read(RESET_FLAG_ADDRESS) == 0) // Check if the reset flag is 0 (i.e., the software reset hasn't been performed yet)
+  if (EEPROM.read(EEPROM_RESET_FLAG_ADDRESS) == 0) // Check if the reset flag is 0 (i.e., the software reset hasn't been performed yet)
   {
     Serial.println("Testing Software Reset");
     delay(1000);
-    EEPROM.write(RESET_FLAG_ADDRESS, 1); // Set the reset flag to 1 (i.e., the software reset has been performed)
+    EEPROM.write(EEPROM_RESET_FLAG_ADDRESS, 1); // Set the reset flag to 1 (i.e., the software reset has been performed)
     softwareReset();
   }
   else
   {
     Serial.println("Reset already performed");
-    EEPROM.write(RESET_FLAG_ADDRESS, 0);
+    EEPROM.write(EEPROM_RESET_FLAG_ADDRESS, 0);
   }
   //digitalWrite(Valve1, HIGH);
   delay(1000);
@@ -118,8 +118,6 @@ void loop()
   DFRSEN0385.run385(&soilSensorData, myTime);
 
   soilSensor.runSoilSensor(&soilSensorData);
-
-
 
   wifiInterface.runWIFI(&soilSensorData, myTime);
 
@@ -220,28 +218,30 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
 
   //calculate the watering duration
   case 1:
-    autoCycleStartTime = millis() / 1000;
-
-    if (startCycle09 && soilMoisture < 30.0) 
     {
-      float lowMoisture = 22.0; // 22% soil moisture - moisture is low
-      float highMoisture = 30.0; // 30% soil moisture - moisture is high
+      autoCycleStartTime = millis() / 1000;
+      float lowMoisture = 25.0; // 22% soil moisture - moisture is low
+      float highMoisture = 35.0; // 30% soil moisture - moisture is high
       float lowDuration = 25.0; // 25 minutes if soil moisture is 22%
-      float highDuration = 5.0; // 5 minutes if soil moisture is 28%
-      const float m = (lowDuration - highDuration) / (lowMoisture - highMoisture);
-      const float b = lowDuration - m * lowMoisture; 
-      float wateringTime = m * soilMoisture + b;
-      wateringDuration = 60 * wateringTime;
-    } 
-    else if ((startCycle14 || startCycle17) && soilMoisture < 25.0) 
-    {
-      wateringDuration = 60 * 5; // For both startCycle14 and startCycle17
+      float highDuration = 10.0; // 5 minutes if soil moisture is 28%
+      if (startCycle09 && soilMoisture < highMoisture) 
+      {
+
+        const float m = (lowDuration - highDuration) / (lowMoisture - highMoisture);
+        const float b = lowDuration - m * lowMoisture; 
+        float wateringTime = m * soilMoisture + b;
+        wateringDuration = 60 * wateringTime;
+      } 
+      else if ((startCycle14 || startCycle17) && soilMoisture < 25.0) 
+      {
+        wateringDuration = 60 * 5; // For both startCycle14 and startCycle17
+      }
+      else 
+      {
+        wateringDuration = 0;
+      }
+      autoCycleStep++;
     }
-    else 
-    {
-      wateringDuration = 0;
-    }
-    autoCycleStep++;
     break;
 
   // wait for the duration to expire

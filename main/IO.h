@@ -6,6 +6,10 @@
 #include <limits.h>
 #include <EEPROM.h>
 
+//EEPROM addresses
+#define EEPROM_RESET_FLAG_ADDRESS 0 // EEPROM address to store the reset flag
+#define EEPROM_PREVIOUS_TEMP_LAST_DAY_ADDRESS 3 //float = 4 bytes
+
 #define USERTC false
 
 extern SoftwareSerial mySerial;
