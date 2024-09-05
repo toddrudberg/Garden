@@ -7,9 +7,9 @@
 
 struct sSEN0385Data
 {
-    float temperature;
-    float humidity;
-    float avgOATPreviousDay;
+    float temperature = -1;
+    float humidity = -1;
+    float avgOATPreviousDay = -1;
 };
 
 class cSEN0385 

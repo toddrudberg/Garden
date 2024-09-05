@@ -93,6 +93,12 @@ sSoilSensorData cSoilSensor::fillSoilSensorDataArray(sSoilSensorData* soilSensor
     soilMoistureSum += shTest;//soilSensorDataArray[i].soilMoisture;
     soilPhSum += soilSensorDataArray[i].soilPh;
   }
+
+  if( bufferLength == 0)
+  {
+    bufferLength = 1;
+  }
+
   double outsideAirTempAvg = outsideAirTempSum / bufferLength;
   double outsideAirHumidityAvg = outsideAirHumiditySum / bufferLength;
   soilTemperatureAvg = soilTemperatureSum / bufferLength;

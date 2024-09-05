@@ -41,9 +41,9 @@ void setup()
   pinMode(Valve2, OUTPUT);
   pinMode(Valve3, OUTPUT);
   pinMode(sdChipSelect, OUTPUT);
-  //digitalWrite(Valve1, HIGH);
+  digitalWrite(Valve3, HIGH);
   delay(1000);
-  //digitalWrite(Valve1, LOW);
+  digitalWrite(Valve3, LOW);
   delay(500);
   if (EEPROM.read(RESET_FLAG_ADDRESS) == 0) // Check if the reset flag is 0 (i.e., the software reset hasn't been performed yet)
   {
@@ -57,60 +57,68 @@ void setup()
     Serial.println("Reset already performed");
     EEPROM.write(RESET_FLAG_ADDRESS, 0);
   }
-  //digitalWrite(Valve1, HIGH);
+  digitalWrite(Valve3, HIGH);
   delay(1000);
-  digitalWrite(Valve1, LOW);
+  digitalWrite(Valve3, LOW);
 
 
-  //logger.setupLogger();
-  if( logger.setupRTC() )
-  {
-    Serial.println("RTC setup successful.");
-    Serial.print("Current time: ");
-    Serial.println(logger.getExcelFormattedTime(0));
-    Serial.print("Current Date: ");
-    Serial.println(logger.getExcelFormattedDate(0));
-  }
-  else
-  {
-    Serial.println("RTC setup failed.");
-    softwareReset();
-  }
+  // just need to Run the logger, so no need to setup the logger here.
+  // if( logger.setupRTC() )
+  // {
+  //   Serial.println("RTC setup successful.");
+  //   Serial.print("Current time: ");
+  //   Serial.println(logger.getExcelFormattedTime(0));
+  //   Serial.print("Current Date: ");
+  //   Serial.println(logger.getExcelFormattedDate(0));
+  // }
+  // else
+  // {
+  //   Serial.println("RTC setup failed.");
+  //   softwareReset();
+  // }
 }
 
 bool firstPass = true;
+unsigned long previousMillis = 0;
+unsigned long lastStatusCheck = 0;
+unsigned int WIFIFailures = 0;
+
 
 void loop()
 {
   static unsigned long epochTime = 0;
-  // unsigned long epoch = 0;
-  // if(!firstPass && WiFi.status() == WL_CONNECTED && wifiInterface.CheckNtpTime(&epoch))
-  // {
-  //   if (rtcFailed && logger.setupRTC())
-  //   {
-  //     logger.SetTime(epoch);
-  //   }
-
-  //   if (!rtcFailed)
-  //   {
-  //     logger.SetTime(epoch);
-  //   }
-
-  //   epochTime = logger.getUnixTime();
-  // }
-  // else
-  // {
-  //   epochTime = logger.getUnixTime();
-  // }
+  unsigned long currentMillis = millis();
   
   wifiInterface.CheckNtpTime(&epochTime);
-  logger.SetTime(epochTime);
+  //logger.SetTime(epochTime);
 
   // If millis() is going to rollover in the next 24 hours
   if (millis() > ULONG_MAX - 86400000) {
       softwareReset();
   }    
-  
+  if( currentMillis - lastStatusCheck > 60000)
+  {
+      // Update the last status check time
+      lastStatusCheck = currentMillis;
+      
+      // Check if WiFi is not connected
+      if((WiFi.status() != WL_CONNECTED)) //&& rtcFailed)
+      {
+          // Increment the WiFi failure counter
+          WIFIFailures++;
+          
+          // If WiFi failures exceed 5, reset the system
+          if(WIFIFailures > 10)
+          {
+              softwareReset();
+          }
+      }
+      else
+      {
+        WIFIFailures = 0;
+      }
+  }
+
   soilSensorData.epochTime = epochTime;
   
   time_t myTime = static_cast<time_t>(epochTime);
@@ -119,18 +127,39 @@ void loop()
 
   soilSensor.runSoilSensor(&soilSensorData);
 
-
-
   wifiInterface.runWIFI(&soilSensorData, myTime);
 
   logger.RunLogger(&soilSensorData, WiFi.status() != WL_CONNECTED, myTime);
 
-  if(WiFi.status() != WL_CONNECTED && rtcFailed)
-  {
-    softwareReset();
-  }
+
 
   manageWateringValves(myTime, &soilSensorData);
+
+
+    // Heartbeat code for valve3
+  int interval = 5000;
+  if( WiFi.status() != WL_CONNECTED)
+  {
+    interval = 500;
+  }
+  // else if( rtcFailed)
+  // {
+  //   interval = 250;
+  // }
+  else
+  {
+    interval = 5000;
+  }
+  
+
+  static bool heatStatus = false;
+  if (currentMillis - previousMillis >= interval) 
+  {
+    previousMillis = currentMillis;
+    heatStatus = !heatStatus;
+    digitalWrite(Valve3, heatStatus ? HIGH : LOW);
+  }
+
   //printValues();
 
   //checkHeap();
@@ -275,7 +304,7 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
   {
     digitalWrite(Valve1, HIGH);
     digitalWrite(Valve2, LOW);
-    digitalWrite(Valve3, LOW);
+    //digitalWrite(Valve3, LOW);
     if( ulEpochTime - gWateringTimeStart > gWateringDuration)
     {
       gManualWateringOn = false;
@@ -285,7 +314,7 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
   {
     digitalWrite(Valve1, LOW);
     digitalWrite(Valve2, LOW);
-    digitalWrite(Valve3, LOW);
+    //digitalWrite(Valve3, LOW);
     gWateringTimeStart = ulEpochTime - gWateringDuration;
   }
 }
@@ -325,8 +354,6 @@ void printValues() {
     Serial.print(soilSensorData.soilPh);
     Serial.println(" pH");
   }
-
-
 }
 
 void softwareReset() 
