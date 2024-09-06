@@ -39,42 +39,50 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
         }
         case 1:
         {
-            static int lastRead = millis() + 1001;
+            static unsigned long lastRead = millis() + 10001;
             static sSEN0385Data sht3xData;
-            // static float tempSum = 0; // Sum of temperatures
-            // static int tempCount = 0; // Count of temperature readings
+            static float tempSum = 0; // Sum of temperatures
+            static unsigned int tempCount = 0; // Count of temperature readings
+            static bool avgTempRecorded = false;
         
             struct tm *myTimeStruct = localtime(&myTime);
             int currentHour = myTimeStruct->tm_hour;
 
-            if(millis() - lastRead > 1000)
+            if(millis() - lastRead > 10000)
             {
                 lastRead = millis();
                 sht3xData.temperature = (float)sht3x.getTemperatureF();
                 sht3xData.humidity = (float)sht3x.getHumidityRH();
         
-                //unsigned long epochTime = sensorData->epochTime;
+                unsigned long epochTime = sensorData->epochTime;
         
-                // // Check if current time is between 1400 (2 PM) and 1700 (5 PM)
-                // if(currentHour >= 14 && currentHour < 17)
-                // {
-                //     tempSum += sht3xData.temperature;
-                //     tempCount++;
-                //     sht3xData.avgOATPreviousDay = tempSum / tempCount;
-                // }
-                // else if(currentHour >= 17 && tempCount > 0) // Past 1700 and we have readings
-                // {
-                //     sht3xData.avgOATPreviousDay = tempSum / tempCount;
-                //     // Reset for the next day
-                //     tempSum = 0;
-                //     tempCount = 0;
-                //     // Optionally, do something with averageTemp, like storing or displaying it
-                // }
+                // Check if current time is between 1400 (2 PM) and 1700 (5 PM)
+                if(currentHour >= 14 && currentHour < 17)
+                {
+                    tempSum += sht3xData.temperature;
+                    tempCount++;
+                    sht3xData.avgOATPreviousDay = tempSum / (float) tempCount;
+                    avgTempRecorded = false;
+                }
+                else if(currentHour >= 17 && tempCount > 0 && !avgTempRecorded) // Past 1700 and we have readings
+                {
+                    sht3xData.avgOATPreviousDay = tempSum / (float) tempCount;
+                    EEPROM.put(EEPROM_AVG_OAT_PREVIOUS_DAY_ADDRESS, sht3xData.avgOATPreviousDay);
+                    // Reset for the next day
+                    tempSum = 0;
+                    tempCount = 0;
+                    avgTempRecorded = true;
+                    // Optionally, do something with averageTemp, like storing or displaying it
+                }
+                else if (!avgTempRecorded)
+                {  // If it's not between 1400 and 1700, and we haven't recorded the average temperature yet
+                    EEPROM.get(EEPROM_AVG_OAT_PREVIOUS_DAY_ADDRESS, sht3xData.avgOATPreviousDay);
+                }
 
                 sensorData->outsideAirTemp = sht3xData.temperature;
                 sensorData->outsideAirHumidity = sht3xData.humidity;
-                sensorData->baroPressure = 0;
-                sensorData->avgOATPreviousDay = sht3xData.temperature;//sht3xData.avgOATPreviousDay;
+                sensorData->baroPressure = sht3xData.avgOATPreviousDay;
+                sensorData->avgOATPreviousDay = sht3xData.avgOATPreviousDay;
             }
 
             break;        
