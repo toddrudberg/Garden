@@ -116,6 +116,23 @@ sSoilSensorData cSoilSensor::fillSoilSensorDataArray(sSoilSensorData* soilSensor
   avgSoilSensorData.soilElectricalConductivity = static_cast<float>(soilElectricalConductivityAvg);
   avgSoilSensorData.soilMoisture = static_cast<float>(soilMoistureAvg);
   avgSoilSensorData.soilPh = static_cast<float>(soilPhAvg);
+  avgSoilSensorData.baroPressure = newSoilSensorData.baroPressure;
+  avgSoilSensorData.avgOATPreviousDay = newSoilSensorData.avgOATPreviousDay;
+
+//   struct sSoilSensorData
+// {
+//   char* dateStamp;
+//   char* timeStamp;
+//   unsigned long epochTime;
+//   float outsideAirTemp;
+//   float outsideAirHumidity;
+//   float baroPressure;
+//   float soilTemperature;
+//   float soilElectricalConductivity;
+//   float soilMoisture;
+//   float soilPh;
+//   float avgOATPreviousDay;
+// };
 
   return avgSoilSensorData;
 }

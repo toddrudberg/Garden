@@ -39,26 +39,41 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
         }
         case 1:
         {
-            static unsigned long lastRead = millis() + 10001;
+            static unsigned long lastRead = millis();
             static sSEN0385Data sht3xData;
             static float tempSum = 0; // Sum of temperatures
             static unsigned int tempCount = 0; // Count of temperature readings
             static bool avgTempRecorded = false;
         
-            struct tm *myTimeStruct = localtime(&myTime);
-            int currentHour = myTimeStruct->tm_hour;
 
-            if(millis() - lastRead > 10000)
+
+            if(millis() - lastRead > 5000)
             {
+                struct tm *myTimeStruct = localtime(&myTime);
+                int currentHour = myTimeStruct->tm_hour;
                 lastRead = millis();
                 sht3xData.temperature = (float)sht3x.getTemperatureF();
                 sht3xData.humidity = (float)sht3x.getHumidityRH();
         
+                // Serial.println();
+                // Serial.println("Debugging Temperature Reading");
+                // Serial.print("Current Hour: ");
+                // Serial.println(currentHour);
+                // Serial.print("Temp Sum: ");
+                // Serial.println(tempSum);
+                // Serial.print("Temp Count: ");
+                // Serial.println(tempCount);
+                // Serial.print("Current Temp: ");
+                // Serial.println(sht3xData.temperature);
+
                 unsigned long epochTime = sensorData->epochTime;
+
+                //Serial.print("Which state: ");
         
                 // Check if current time is between 1400 (2 PM) and 1700 (5 PM)
                 if(currentHour >= 14 && currentHour < 17)
                 {
+                    // Serial.println("Between 1400 and 1700");
                     tempSum += sht3xData.temperature;
                     tempCount++;
                     sht3xData.avgOATPreviousDay = tempSum / (float) tempCount;
@@ -66,6 +81,7 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
                 }
                 else if(currentHour >= 17 && tempCount > 0 && !avgTempRecorded) // Past 1700 and we have readings
                 {
+                    // Serial.println("Past 1700 and we have readings");
                     sht3xData.avgOATPreviousDay = tempSum / (float) tempCount;
                     EEPROM.put(EEPROM_AVG_OAT_PREVIOUS_DAY_ADDRESS, sht3xData.avgOATPreviousDay);
                     // Reset for the next day
@@ -76,8 +92,13 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
                 }
                 else if (!avgTempRecorded)
                 {  // If it's not between 1400 and 1700, and we haven't recorded the average temperature yet
+                    // Serial.println("Not between 1400 and 1700, and we haven't recorded the average temperature yet");
                     EEPROM.get(EEPROM_AVG_OAT_PREVIOUS_DAY_ADDRESS, sht3xData.avgOATPreviousDay);
                 }
+                // Serial.println();
+                // Serial.print("Avg Temp Recorded: ");
+                // Serial.println(sht3xData.avgOATPreviousDay);
+                // Serial.println();
 
                 sensorData->outsideAirTemp = sht3xData.temperature;
                 sensorData->outsideAirHumidity = sht3xData.humidity;
