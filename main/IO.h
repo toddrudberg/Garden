@@ -6,9 +6,11 @@
 #include <limits.h>
 #include <EEPROM.h>
 
+
 #define EEPROM_RESET_FLAG_ADDRESS 0 // EEPROM address to store the reset flag
 #define EEPROM_NUM_RESETS 2 // EEPROM address to store the number of resets
 #define EEPROM_AVG_OAT_PREVIOUS_DAY_ADDRESS 4 // EEPROM address to store the average outside air temperature from the previous day
+
 
 #define USERTC false
 

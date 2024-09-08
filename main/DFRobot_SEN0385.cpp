@@ -1,6 +1,7 @@
 
 #include "DFRobot_SEN0385.h"
 
+
 DFRobot_SHT3x sht3x(&Wire, 0x44, 4); // I2C
 
 void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
@@ -42,12 +43,14 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
             static unsigned long lastRead = millis();
             static sSEN0385Data sht3xData;
             static float tempSum = 0; // Sum of temperatures
+
             static unsigned int tempCount = 0; // Count of temperature readings
             static bool avgTempRecorded = false;
         
 
 
             if(millis() - lastRead > 5000)
+
             {
                 struct tm *myTimeStruct = localtime(&myTime);
                 int currentHour = myTimeStruct->tm_hour;
@@ -55,6 +58,7 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
                 sht3xData.temperature = (float)sht3x.getTemperatureF();
                 sht3xData.humidity = (float)sht3x.getHumidityRH();
         
+
                 // Serial.println();
                 // Serial.println("Debugging Temperature Reading");
                 // Serial.print("Current Hour: ");
@@ -70,12 +74,14 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
 
                 //Serial.print("Which state: ");
         
+
                 // Check if current time is between 1400 (2 PM) and 1700 (5 PM)
                 if(currentHour >= 14 && currentHour < 17)
                 {
                     // Serial.println("Between 1400 and 1700");
                     tempSum += sht3xData.temperature;
                     tempCount++;
+
                     sht3xData.avgOATPreviousDay = tempSum / (float) tempCount;
                     avgTempRecorded = false;
                 }
@@ -108,6 +114,7 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
 
             break;        
           }
+
         default:
             processState = 0;
             break;
