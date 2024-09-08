@@ -1,7 +1,7 @@
 //#include "ADAFruitLogger.h"
 #include "IO.h"
 
-RTC_PCF8523 rtc;
+//RTC_PCF8523 rtc;
 
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
@@ -41,82 +41,82 @@ void cAdafruitLogger::RunLogger(sSoilSensorData* soilSensorData, bool wifiConnec
     }
 }
 
-bool cAdafruitLogger::setupRTC()
-{
+// bool cAdafruitLogger::setupRTC()
+// {
 
-    for( int i = 0; i < 10; i++)
-    {
-      if (!rtc.begin()) 
-      {
-        Serial.println("Couldn't find RTC");
-        if(i == 9)
-        {
-          rtcFailed = true;
-          return false;
-        }
-        delay(1000);
-      }   
-      else
-      {
-        Serial.println("RTC found!");
-        rtcFailed = false;
-        break;
-      }
-    }
+//     for( int i = 0; i < 10; i++)
+//     {
+//       if (!rtc.begin()) 
+//       {
+//         Serial.println("Couldn't find RTC");
+//         if(i == 9)
+//         {
+//           rtcFailed = true;
+//           return false;
+//         }
+//         delay(1000);
+//       }   
+//       else
+//       {
+//         Serial.println("RTC found!");
+//         rtcFailed = false;
+//         break;
+//       }
+//     }
 
-    // if (!rtc.initialized() || rtc.lostPower()) 
-    // {
-    //   Serial.println("May have lost power, let's set the time!");
-    //   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    // }
+//     // if (!rtc.initialized() || rtc.lostPower()) 
+//     // {
+//     //   Serial.println("May have lost power, let's set the time!");
+//     //   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+//     // }
 
-    Serial.println("RTC is setup and running!");
-    // When the RTC was stopped and stays connected to the battery, it has
-    // to be restarted by clearing the STOP bit. Let's do this to ensure
-    // the RTC is running.
-    rtc.start();
-    //rtc.adjust(DateTime(1033776000));
-    return true;
-}
+//     Serial.println("RTC is setup and running!");
+//     // When the RTC was stopped and stays connected to the battery, it has
+//     // to be restarted by clearing the STOP bit. Let's do this to ensure
+//     // the RTC is running.
+//     rtc.start();
+//     //rtc.adjust(DateTime(1033776000));
+//     return true;
+// }
 
-void cAdafruitLogger::SetTime(unsigned long unixTime)
-{
-  // Get the current time from the RTC
-  DateTime now = rtc.now();
-  DateTime dtUnixIn = DateTime(unixTime);
-  // unixTime is in the year 2024 to 2025 continue to set time, otherwise return
-  if ( dtUnixIn.year() < 2024 || dtUnixIn.year() > 2025) 
-  {
-    Serial.println("Invalid Unix Time.");
-    return;
-  }
+// void cAdafruitLogger::SetTime(unsigned long unixTime)
+// {
+//   // Get the current time from the RTC
+//   DateTime now = rtc.now();
+//   DateTime dtUnixIn = DateTime(unixTime);
+//   // unixTime is in the year 2024 to 2025 continue to set time, otherwise return
+//   if ( dtUnixIn.year() < 2024 || dtUnixIn.year() > 2025) 
+//   {
+//     Serial.println("Invalid Unix Time.");
+//     return;
+//   }
 
-  // Calculate the difference between the current time and unixTime
-  long difference = labs(now.unixtime() - unixTime);
-  // Serial.print("Current Time: ");
-  // Serial.println(now.unixtime());
-  // Serial.print("Unix Time: ");
-  // Serial.println(unixTime);
-  // Only adjust the RTC time if the difference is more than 10 seconds
-  // Serial.print("Difference: ");
-  // Serial.println(difference);
-  if (difference > 5) 
-  {
-    rtc.adjust(DateTime(unixTime));
-    Serial.print("RTC time adjusted by ");
-    Serial.print(difference);
-    Serial.println(" seconds.");
-  }
-}
+//   // Calculate the difference between the current time and unixTime
+//   long difference = labs(now.unixtime() - unixTime);
+//   // Serial.print("Current Time: ");
+//   // Serial.println(now.unixtime());
+//   // Serial.print("Unix Time: ");
+//   // Serial.println(unixTime);
+//   // Only adjust the RTC time if the difference is more than 10 seconds
+//   // Serial.print("Difference: ");
+//   // Serial.println(difference);
+//   if (difference > 5) 
+//   {
+//     rtc.adjust(DateTime(unixTime));
+//     Serial.print("RTC time adjusted by ");
+//     Serial.print(difference);
+//     Serial.println(" seconds.");
+//   }
+// }
 
-uint32_t cAdafruitLogger::getUnixTime() {
-  DateTime now = rtc.now();
-  if( now.year() < 2024 || now.year() > 2025)
-  {
-    rtcFailed = true;
-  }
-  return now.unixtime();
-}
+// uint32_t cAdafruitLogger::getUnixTime() {
+//   DateTime now = rtc.now();
+//   if( now.year() < 2024 || now.year() > 2025)
+//   {
+//     rtcFailed = true;
+//   }
+//   return now.unixtime();
+// }
 
 char* cAdafruitLogger::getExcelFormattedDate(time_t epochTime) 
 {
@@ -203,7 +203,7 @@ bool cAdafruitLogger::writeData(sSoilSensorData* soilSensorData, bool wifiConnec
     dataFile.print(", ");
     dataFile.print(!SD.exists(FileName));
     dataFile.print(", ");
-    dataFile.print(rtcFailed);
+    dataFile.print(false);//rtcFailed);
     dataFile.print(", ");
     dataFile.print(gremoteServerFails);
     dataFile.print(", ");

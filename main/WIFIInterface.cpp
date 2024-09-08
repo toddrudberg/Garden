@@ -9,14 +9,14 @@ cWIFIInterface::cWIFIInterface() : timeClient(ntpUDP, "pool.ntp.org", -25200), s
 void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
 {
     static int state = 0;
-    static bool wifiConnectionFailed = false;
+    static bool wifiInitializationFailed = false;
     switch(state)
     {
         case 0:
         {
             static int timeOut = millis();
 
-            if( !wifiConnectionFailed && setupWIFI())
+            if( !wifiInitializationFailed && setupWIFI())
             {
                 // If successfully connected to WiFi, print IP address
                 Serial.println("Connected to WiFi");
@@ -30,12 +30,12 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
             }
             else
             {
-                wifiConnectionFailed = true;
+                wifiInitializationFailed = true;
                 if(millis() - timeOut > 2000)
                 {
                     Serial.println("WIFI setup failed, retrying...");
                     timeOut = millis();
-                    wifiConnectionFailed = false;
+                    wifiInitializationFailed = false;
                 }
             }
             break;
@@ -70,8 +70,9 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
                     Serial.println("Too many server fails, resetting WiFi...");
                     WiFi.disconnect();
                     gremoteServerFails = 0;
+                    wifiInitializationFailed = false;
                     state = 0; // Go back to state 0 to reconnect
-                    NVIC_SystemReset();
+                    //NVIC_SystemReset();
                 }
             } 
             else 
@@ -80,6 +81,7 @@ void cWIFIInterface::runWIFI(sSoilSensorData* soilSensorData, time_t epochTime)
                 {
                     Serial.println("WiFi connection lost, retrying...");
                     state = 0; // Go back to state 0 to reconnect
+                    wifiInitializationFailed = false;
                     lastAttemptTime = millis(); // Update the last attempt time
                 }
             }
@@ -174,7 +176,8 @@ bool cWIFIInterface::setupWIFI()
             Serial.println("Failed to connect to WiFi");
             return false;
         }
-        delay(100);
+        delay(1000);
+        WiFi.begin(ssid, password); //try to connect again
     }
 
     Serial.println("Connected to WiFi");
@@ -320,7 +323,7 @@ bool cWIFIInterface::update_dropServer(sSoilSensorData* soilSensorData, time_t e
 #else
     doc["SDError"] = false;
 #endif
-    doc["RTCFailed"] = rtcFailed;
+    doc["RTCFailed"] = false; //rtcFailed;
     doc["AvgTempPrevDay"] = soilSensorData->avgOATPreviousDay;
 
     if (WiFi.status() != WL_CONNECTED) 

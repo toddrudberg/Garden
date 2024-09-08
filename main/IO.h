@@ -6,9 +6,11 @@
 #include <limits.h>
 #include <EEPROM.h>
 
-//EEPROM addresses
+
 #define EEPROM_RESET_FLAG_ADDRESS 0 // EEPROM address to store the reset flag
-#define EEPROM_PREVIOUS_TEMP_LAST_DAY_ADDRESS 3 //float = 4 bytes
+#define EEPROM_NUM_RESETS 2 // EEPROM address to store the number of resets
+#define EEPROM_AVG_OAT_PREVIOUS_DAY_ADDRESS 4 // EEPROM address to store the average outside air temperature from the previous day
+
 
 #define USERTC false
 
@@ -27,7 +29,9 @@ extern const unsigned int Valve3;
 
 extern const unsigned long baud;
 
-extern bool rtcFailed;
+//extern bool rtcFailed;
+
+
 
 struct sSoilSensorData
 {

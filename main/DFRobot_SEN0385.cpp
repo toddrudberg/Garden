@@ -40,55 +40,81 @@ void cSEN0385::run385(sSoilSensorData* sensorData, time_t myTime)
         }
         case 1:
         {
-            static int lastRead = millis();
+            static unsigned long lastRead = millis();
             static sSEN0385Data sht3xData;
             static float tempSum = 0; // Sum of temperatures
-            static int tempCount = 0; // Count of temperature readings
-            static bool avgCalculatedForDay = false; // Flag to track if average is calculated for the day
+
+            static unsigned int tempCount = 0; // Count of temperature readings
+            static bool avgTempRecorded = false;
         
-            struct tm *myTimeStruct = localtime(&myTime);
-            int currentHour = myTimeStruct->tm_hour;
-        
-            if(millis() - lastRead > 1000)
+
+
+            if(millis() - lastRead > 5000)
+
             {
+                struct tm *myTimeStruct = localtime(&myTime);
+                int currentHour = myTimeStruct->tm_hour;
                 lastRead = millis();
                 sht3xData.temperature = (float)sht3x.getTemperatureF();
                 sht3xData.humidity = (float)sht3x.getHumidityRH();
         
+
+                // Serial.println();
+                // Serial.println("Debugging Temperature Reading");
+                // Serial.print("Current Hour: ");
+                // Serial.println(currentHour);
+                // Serial.print("Temp Sum: ");
+                // Serial.println(tempSum);
+                // Serial.print("Temp Count: ");
+                // Serial.println(tempCount);
+                // Serial.print("Current Temp: ");
+                // Serial.println(sht3xData.temperature);
+
+                unsigned long epochTime = sensorData->epochTime;
+
+                //Serial.print("Which state: ");
+        
+
                 // Check if current time is between 1400 (2 PM) and 1700 (5 PM)
                 if(currentHour >= 14 && currentHour < 17)
                 {
+                    // Serial.println("Between 1400 and 1700");
                     tempSum += sht3xData.temperature;
                     tempCount++;
-                    if( tempCount > 0)
-                    {
-                        sht3xData.avgOATPreviousDay = tempSum / tempCount;
-                    }
-                    avgCalculatedForDay = false; // Reset the flag during this period
+
+                    sht3xData.avgOATPreviousDay = tempSum / (float) tempCount;
+                    avgTempRecorded = false;
                 }
-                else if(currentHour >= 17 && !avgCalculatedForDay) // Past 1700 and we have readings
+                else if(currentHour >= 17 && tempCount > 0 && !avgTempRecorded) // Past 1700 and we have readings
                 {
-                    if( tempCount > 0)
-                    {
-                        sht3xData.avgOATPreviousDay = tempSum / tempCount;
-                        EEPROM.put(EEPROM_PREVIOUS_TEMP_LAST_DAY_ADDRESS, sht3xData.avgOATPreviousDay);     
-                    }               
+                    // Serial.println("Past 1700 and we have readings");
+                    sht3xData.avgOATPreviousDay = tempSum / (float) tempCount;
+                    EEPROM.put(EEPROM_AVG_OAT_PREVIOUS_DAY_ADDRESS, sht3xData.avgOATPreviousDay);
                     // Reset for the next day
                     tempSum = 0;
                     tempCount = 0;
-                    avgCalculatedForDay = true; // Set the flag to indicate average is calculated
+                    avgTempRecorded = true;
+                    // Optionally, do something with averageTemp, like storing or displaying it
                 }
+                else if (!avgTempRecorded)
+                {  // If it's not between 1400 and 1700, and we haven't recorded the average temperature yet
+                    // Serial.println("Not between 1400 and 1700, and we haven't recorded the average temperature yet");
+                    EEPROM.get(EEPROM_AVG_OAT_PREVIOUS_DAY_ADDRESS, sht3xData.avgOATPreviousDay);
+                }
+                // Serial.println();
+                // Serial.print("Avg Temp Recorded: ");
+                // Serial.println(sht3xData.avgOATPreviousDay);
+                // Serial.println();
+
+                sensorData->outsideAirTemp = sht3xData.temperature;
+                sensorData->outsideAirHumidity = sht3xData.humidity;
+                sensorData->baroPressure = sht3xData.avgOATPreviousDay;
+                sensorData->avgOATPreviousDay = sht3xData.avgOATPreviousDay;
             }
-            if(avgCalculatedForDay)
-            {
-                EEPROM.get(EEPROM_PREVIOUS_TEMP_LAST_DAY_ADDRESS, sht3xData.avgOATPreviousDay);
-            }
-            sensorData->outsideAirTemp = sht3xData.temperature;
-            sensorData->outsideAirHumidity = sht3xData.humidity;
-            sensorData->baroPressure = 0;
-            sensorData->avgOATPreviousDay = sht3xData.avgOATPreviousDay;
-            break;
-        }
+
+            break;        
+          }
+
         default:
             processState = 0;
             break;
