@@ -251,8 +251,8 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
   case 1:
     {
       autoCycleStartTime = millis() / 1000;
-      float lowMoisture = 25.0; // 22% soil moisture - moisture is low
-      float highMoisture = 35.0; // 30% soil moisture - moisture is high
+      float lowMoisture = 22.0; // 22% soil moisture - moisture is low
+      float highMoisture = 30.0; // 30% soil moisture - moisture is high
       float lowDuration = 25.0; // 25 minutes if soil moisture is 22%
       float highDuration = 10.0; // 5 minutes if soil moisture is 28%
       if (startCycle09 && soilMoisture < highMoisture) 
@@ -261,9 +261,11 @@ void manageWateringValves(time_t myTime, sSoilSensorData* soilSensorData)
         const float m = (lowDuration - highDuration) / (lowMoisture - highMoisture);
         const float b = lowDuration - m * lowMoisture; 
         float wateringTime = m * soilMoisture + b;
+        if( wateringTime > lowDuration)
+          wateringTime = lowDuration;
         wateringDuration = 60 * wateringTime;
       } 
-      else if ((startCycle14 || startCycle17) && soilMoisture < 25.0) 
+      else if ((startCycle14 || startCycle17) && soilMoisture < lowMoisture) 
       {
         wateringDuration = 60 * 5; // For both startCycle14 and startCycle17
       }
